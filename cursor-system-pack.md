@@ -327,6 +327,169 @@ With **divisions=256**:
 
 ---
 
+# 🔢 SECTION 6 — VERSIONING RULES
+
+All creative work follows consistent version numbering:
+
+### v0.x — Exploration  
+Rough sketches, ideas, harmonic tests, motif tests.
+
+### v1.x — Structure Pass  
+Form, motif, harmonic map, lead-sheet skeleton.
+
+### v2.x — Harmony Pass  
+Colour choices, Tonality Vault application, polychords.
+
+### v3.x — Melody & Motif Pass  
+Phrase shaping, augmentation, inversion, clarity.
+
+### v4.x — Accompaniment & Texture  
+Bass lines, inner voices, rhythmic feels.
+
+### v5.x — Orchestration / Distribution  
+Assigning parts, colours, dynamics.
+
+### v6.x — Engraving Preparation  
+Spacing, articulations, layout-friendly changes.
+
+### v7.x — Polish  
+Humanising rhythms, breath, dynamic arcs.
+
+### v8.x — Performance-Ready  
+Fully consistent with all Criteria of Excellence.
+
+### v9.x — Final Artistic Pass  
+Expression, phrasing, nuance, emotional shape.
+
+### v10.x — Release Version  
+Exported, archived, ready to publish or perform.
+
+This keeps all future projects predictable.
+
+---
+
+# 🔁 SECTION 7 — WORKFLOW GUIDE
+
+This is your **standard creative workflow**, usable for ANY domain.
+
+## 🟦 Stage 1 — Intent  
+Define:
+- emotional core  
+- motifs (music)  
+- theme (lit)  
+- palette (music)  
+- narrative hook (lit)
+
+## 🟩 Stage 2 — Structure  
+Music:
+- lead sheet
+- formal grid
+- motivic recurrence
+
+Literature:
+- outline
+- structural beats
+
+## 🟧 Stage 3 — Development  
+Music:
+- motivic transformations
+- harmonic depth
+- rhythmic character
+
+Literature:
+- escalation
+- interiority
+- tension
+
+## 🟨 Stage 4 — Distribution  
+Music:
+- orchestration
+- texture
+- instrument roles
+
+Literature:
+- scene variation
+- POV management
+
+## 🟫 Stage 5 — Refinement  
+Music:
+- engraving
+- humanisation
+- articulation
+- dynamic arcs
+
+Literature:
+- language polish
+- sentence rhythm
+- imagery
+
+## 🟪 Stage 6 — Excellence Check  
+Score against:
+- Music Criteria of Excellence  
+- or  
+- Short Story Criteria of Excellence  
+
+Fix anything < 7/10.
+
+## 🟫 Stage 7 — Final Output  
+- .musicxml  
+- .pdf  
+- final manuscript  
+- final story  
+
+Everything follows this same arc.
+
+---
+
+# 🧭 SECTION 8 — WORKFLOW SHORTCUTS
+
+## Shortcut A — "Generate from seed"
+Start from a motif, concept, or theme.
+
+## Shortcut B — "Explode" a lead sheet
+Take a piano reduction → orchestrate.
+
+## Shortcut C — "Condense"
+Take an orchestral passage → lead sheet.
+
+## Shortcut D — "Rewrite structurally"
+Maintain motifs but rebuild from scratch.
+
+## Shortcut E — "Criteria Enforcement"
+Inject Excellence Trigger.
+
+---
+
+# ⚠️ SECTION 9 — QUALITY ENFORCEMENT (GLOBAL)
+
+All creative engines must:
+
+- prevent generic patterns  
+- enforce motif recurrence  
+- enforce harmonic depth  
+- enforce length requirements  
+- enforce engraving rules  
+- enforce 8–9/10 quality threshold  
+- reject outputs that feel "AI-ish"  
+
+This is a **permanent rule** for every Cursor project.
+
+---
+
+# 🪪 SECTION 10 — LICENSE
+
+MIT License
+
+Copyright (c) 2024–2025
+
+Permission is hereby granted, free of charge, to any person obtaining a copy of this software and associated documentation files (the "Software"), to deal in the Software without restriction, including without limitation the rights to use, copy, modify, merge, publish, distribute, sublicense, and/or sell copies of the Software, and to permit persons to whom the Software is furnished to do so, subject to the following conditions:
+
+The above copyright notice and this permission notice shall be included in all copies or substantial portions of the Software.
+
+THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
+
+---
+
 # 🔧 HOW TO USE THIS FILE
 
 1. **Import** this file as a system prompt or project rules in Cursor.
