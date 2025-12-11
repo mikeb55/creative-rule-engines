@@ -10,3 +10,4 @@ Combining them gives:
 - Multiple inversion/direction variants.
 - Rich arpeggio vocab that implies entire tonalities, not just chords.
 
+

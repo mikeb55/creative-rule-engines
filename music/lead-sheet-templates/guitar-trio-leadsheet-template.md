@@ -10,3 +10,4 @@ Special rules:
 - Harmony supports guitar-friendly shapes.
 - Leave rhythmic flexibility for comping, but clearly show harmonic rhythm.
 
+

@@ -50,3 +50,4 @@ This document defines the **global musical quality standard** for all compositio
 
 Use this when refining: if any axis is clearly under 7, the piece is not yet "excellent" and needs another pass.
 
+

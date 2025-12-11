@@ -35,3 +35,4 @@ For case presentations, supervision documents, and client education.
 - How it links to EMDR principles  
 - What you will do next time
 
+

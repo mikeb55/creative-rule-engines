@@ -11,3 +11,4 @@ This folder contains **reusable harmonic palettes**:
 - Idiom-specific palettes (Lydian clouds, Bartók night textures)
 - The **Tonality Vault** module (core system)
 
+

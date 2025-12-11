@@ -15,3 +15,4 @@ It is the *canonical source of truth* for:
 
 All Cursor music projects should reference this repo rather than redefining rules from scratch.
 
+

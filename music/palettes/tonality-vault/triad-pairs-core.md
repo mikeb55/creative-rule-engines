@@ -20,3 +20,4 @@ Use:
   - Emotional function.
 - Use triad alternation for melodic lines and upper-structure voicings.
 
+

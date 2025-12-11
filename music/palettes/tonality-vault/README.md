@@ -13,3 +13,4 @@ This folder contains the **core Tonality Vault system**:
 
 Other palette files may reference these concepts at a high level; this folder is the canonical deep reference.
 
+

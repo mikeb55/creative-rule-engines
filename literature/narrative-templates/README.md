@@ -8,3 +8,4 @@ Includes:
 - Novel outline templates
 - Prompt structures for daily writing
 
+

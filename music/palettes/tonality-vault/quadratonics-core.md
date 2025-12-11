@@ -12,3 +12,4 @@ Design:
 
 - Each tonality chooses a "respectful" tension note that wants to resolve back into the triad, defining Layer 1 colour.
 
+

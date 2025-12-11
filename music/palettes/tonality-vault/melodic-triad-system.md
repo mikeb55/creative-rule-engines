@@ -12,3 +12,4 @@ Rules:
 
 Everything else (quadratonics, tension triads, bebop lines) grows from this.
 
+

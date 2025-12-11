@@ -38,3 +38,4 @@ Default: 17-piece big band
 
 Use this engine plus specific Feifke-style prompting in Cursor for big band projects.
 
+

@@ -41,3 +41,4 @@ A final line, image, or idea that lingers.
 
 When writing or revising, aim for **8–9/10** for publishable quality.
 
+

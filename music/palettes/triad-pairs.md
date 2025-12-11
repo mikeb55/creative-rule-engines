@@ -17,3 +17,4 @@ Triad pairs = **two triads** used as a melodic/harmonic system.
 
 See `tonality-vault/triad-pairs-core.md` for detailed systems tied to specific tonalities and emotional functions.
 
+

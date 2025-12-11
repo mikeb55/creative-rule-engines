@@ -31,3 +31,4 @@ For modal jazz songs, contemporary songs, or hybrid forms with lyric potential.
 
 This engine gives Cursor a consistent model for song-form composition.
 
+

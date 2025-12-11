@@ -14,3 +14,4 @@ Function:
 
 Tie into Tonality Vault triad pairs to keep upper structures emotionally and functionally consistent.
 
+

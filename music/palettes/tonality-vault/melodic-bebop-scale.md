@@ -11,3 +11,4 @@ Result:
 - 12-note collection with internal gravity.
 - True bebop-like integration of chromaticism without losing tonality.
 
+

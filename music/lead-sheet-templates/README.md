@@ -8,3 +8,4 @@ Standardised lead sheet starting points for:
 
 These templates should be used as **starting layouts and rule sets** when generating new lead sheets in Cursor.
 
+

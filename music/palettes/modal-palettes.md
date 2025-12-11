@@ -15,3 +15,4 @@ Each can be mapped onto:
 
 Use for melodic/harmonic planning, not just scale lists.
 
+

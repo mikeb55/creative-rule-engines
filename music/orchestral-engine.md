@@ -46,3 +46,4 @@ Purpose: provide a **workflow + rules** for symphonic / chamber orchestral piece
 
 Use this engine with detailed prompts in Cursor, referencing this file as the orchestral rule source.
 
+

@@ -45,3 +45,4 @@ Decide:
 ## Quality Standard:  
 Aim for **8–9/10**, where characters feel alive, structure is intentional, and the prose has refinement and clarity.
 
+
