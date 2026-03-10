@@ -2,6 +2,17 @@
 
 For modal jazz songs, contemporary songs, or hybrid forms with lyric potential.
 
+## Universal Principles
+
+**See:** `composition-principles.md` for universal composition principles that apply to all styles:
+- Three-Level System (generalized)
+- MVP Framework (generalized)
+- Practice Philosophy
+- Development & Form
+- Density & Space Management
+
+These principles complement the songwriting-specific guidelines below.
+
 ## 1. Form Types
 
 - AABA (32 bars)

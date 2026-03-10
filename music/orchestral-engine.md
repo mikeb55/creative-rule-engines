@@ -2,6 +2,17 @@
 
 Purpose: provide a **workflow + rules** for symphonic / chamber orchestral pieces that achieve **9/10** by your Criteria of Excellence.
 
+## Universal Principles
+
+**See:** `composition-principles.md` for universal composition principles that apply to all styles:
+- Three-Level System (generalized)
+- MVP Framework (generalized)
+- Practice Philosophy
+- Development & Form
+- Density & Space Management
+
+These principles complement the orchestral-specific guidelines below.
+
 ## 1. Workflow Stages
 
 1. **Motif Definition**

@@ -2,6 +2,17 @@
 
 For ensembles like: guitar + strings + winds + flugelhorn / etc.
 
+## Universal Principles
+
+**See:** `composition-principles.md` for universal composition principles that apply to all styles:
+- Three-Level System (generalized)
+- MVP Framework (generalized)
+- Practice Philosophy
+- Development & Form
+- Density & Space Management
+
+These principles complement the chamber-specific guidelines below.
+
 ## 1. Ensemble Concept
 
 - Guitar as **colour + harmony**, not just comp.

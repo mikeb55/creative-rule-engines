@@ -27,6 +27,15 @@ creative-rule-engines/
 ├── README.md                      # This file
 ├── .gitignore
 │
+├── creative-engines/              # 🎯 THE MIGHTY TEN — Global 10-engine composition framework
+│   ├── engines/                   # Scofield, Shorter, Frisell, Wheeler, Stravinsky, Zappa, Slonimsky, Bartók, Counterpoint, Polyphonic
+│   ├── rules/                     # GCE, anti-monotony, ensemble, engraving, composition structure
+│   ├── palettes/                  # tonality_vault, interval_cycles, triad_pairs, polychords
+│   ├── templates/                 # composition_request, revision_loop
+│   └── docs/
+│       ├── engine_master_palette.md
+│       └── The_Mighty_Ten_Engines_User_Guide.md
+│
 ├── music/                         # 🎼 Music Composition Engines
 │   ├── excellence-criteria.md     # 0-10 quality scale
 │   ├── orchestral-engine.md       # Symphonic/chamber workflow
@@ -112,6 +121,13 @@ For specific projects, reference individual files:
 Apply the rules from music/jazz-bigband-engine.md
 Use the Tonality Vault system from music/palettes/tonality-vault/
 ```
+
+### The Mighty Ten (Global 10-Engine Framework)
+
+This repo is the **canonical home** for the global 10-engine composition framework. Other Cursor music projects should **reference this repo** rather than redefining engines locally.
+
+- **Engine palette:** `creative-engines/docs/engine_master_palette.md`
+- **User guide:** `creative-engines/docs/The_Mighty_Ten_Engines_User_Guide.md`
 
 ---
 
@@ -237,6 +253,8 @@ MIT License — See `cursor-system-pack.md` for full text.
 
 - **Repository:** https://github.com/mikeb55/creative-rule-engines
 - **Master Import:** `cursor-system-pack.md`
+- **Mighty Ten Engines:** `creative-engines/docs/engine_master_palette.md`
+- **Mighty Ten User Guide:** `creative-engines/docs/The_Mighty_Ten_Engines_User_Guide.md`
 
 ---
 
