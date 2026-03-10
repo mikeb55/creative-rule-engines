@@ -34,7 +34,9 @@ creative-rule-engines/
 │   ├── templates/                 # composition_request, revision_loop
 │   └── docs/
 │       ├── engine_master_palette.md
-│       └── The_Mighty_Ten_Engines_User_Guide.md
+│       ├── The_Mighty_Ten_Engines_User_Guide.md
+│       ├── The_Mighty_Ten_Engines_User_Guide_V2.md
+│       └── Mighty_Ten_Engines_Architecture_Guide_V3.docx
 │
 ├── music/                         # 🎼 Music Composition Engines
 │   ├── excellence-criteria.md     # 0-10 quality scale
@@ -128,6 +130,8 @@ This repo is the **canonical home** for the global 10-engine composition framewo
 
 - **Engine palette:** `creative-engines/docs/engine_master_palette.md`
 - **User guide:** `creative-engines/docs/The_Mighty_Ten_Engines_User_Guide.md`
+- **User guide V2:** `creative-engines/docs/The_Mighty_Ten_Engines_User_Guide_V2.md` — Matrix, prompts, orchestration tips
+- **Architecture guide:** `creative-engines/docs/Mighty_Ten_Engines_Architecture_Guide_V3.docx`
 
 ---
 
@@ -255,6 +259,8 @@ MIT License — See `cursor-system-pack.md` for full text.
 - **Master Import:** `cursor-system-pack.md`
 - **Mighty Ten Engines:** `creative-engines/docs/engine_master_palette.md`
 - **Mighty Ten User Guide:** `creative-engines/docs/The_Mighty_Ten_Engines_User_Guide.md`
+- **Mighty Ten User Guide V2:** `creative-engines/docs/The_Mighty_Ten_Engines_User_Guide_V2.md`
+- **Architecture Guide V3:** `creative-engines/docs/Mighty_Ten_Engines_Architecture_Guide_V3.docx`
 
 ---
 
