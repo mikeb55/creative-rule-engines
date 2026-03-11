@@ -22,6 +22,8 @@ def _density_label(s) -> str:
         return "Build"
     if s.emotional_tag == "subtle drift":
         return "Thin"
+    if s.strategy in ("chromatic_mediant", "dominant_injection") and s.cadence_type == "None":
+        return "Fracture"
     return "Build"
 
 
