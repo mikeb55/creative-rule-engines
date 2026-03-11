@@ -45,6 +45,15 @@ Each engine is defined in `creative-engines/engines/`:
 - `counterpoint_hybrid_engine.md`
 - `polyphonic_labyrinth_engine.md`
 
+## Supporting Engines
+
+| Engine | Purpose |
+|--------|---------|
+| **Modulation Menu** | Style-aware modulation suggestions from chord progressions |
+| **Wyble Etude Generation** | Two-line guitar etudes from source MusicXML |
+
+See `creative-engines/supporting-engines/` for full documentation.
+
 ## Reference
 
 This repo is the **canonical home** for the global 10-engine framework. Other Cursor music projects should reference this repo rather than redefining engines locally.
