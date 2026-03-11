@@ -35,26 +35,74 @@ def _style_alignment_score(s: ModulationSuggestion, weights: dict) -> float:
 
 
 def _mighty_modifier(s: ModulationSuggestion, engine: str) -> float:
-    """Mighty Ten engine modifier."""
+    """Mighty Ten engine modifier. See creative-engines/docs/The_Mighty_Ten_Engines_User_Guide.md
+    """
     if engine == "default":
         return 1.0
+    # Scofield–Holland: groove, bass movement → reward dominant, pivot
+    if engine == "scofield_holland":
+        if s.strategy in ("dominant_injection", "pivot_chord"):
+            return 1.2
+        return 1.0
+    # Shorter Narrative: motivic, sectional → reward pivot, common-tone
+    if engine == "shorter_narrative":
+        if s.strategy in ("pivot_chord", "common_tone"):
+            return 1.2
+        return 1.0
+    # Frisell Atmosphere: space, restraint → reward common-tone, chromatic mediant; penalise strong cadence
+    if engine == "frisell_atmosphere":
+        if s.strategy in ("common_tone", "chromatic_mediant"):
+            return 1.2
+        if s.cadence_type == "Strong":
+            return 0.8
+        return 1.0
+    # Wheeler Lyric: melody, warmth, harmonic surprise → reward chromatic mediant, common-tone
+    if engine == "wheeler_lyric":
+        if s.strategy in ("chromatic_mediant", "common_tone"):
+            return 1.2
+        return 1.0
+    # Stravinsky Pulse: pulse, irregularity → reward chromatic mediant, dominant
+    if engine == "stravinsky_pulse":
+        if s.strategy in ("chromatic_mediant", "dominant_injection"):
+            return 1.15
+        return 1.0
+    # Zappa Disruption: disruption, controlled chaos → reward abrupt contrast
+    if engine == "zappa_disruption":
+        if s.strategy in ("chromatic_mediant", "dominant_injection"):
+            return 1.2
+        if s.strategy == "common_tone":
+            return 0.9
+        return 1.0
+    # Slonimsky Harmonic: interval cycles → reward chromatic mediant, modal interchange
+    if engine == "slonimsky_harmonic":
+        if s.strategy in ("chromatic_mediant", "modal_interchange"):
+            return 1.2
+        return 1.0
+    # Bartók Night: polymodal, dark → reward modal interchange, chromatic mediant
+    if engine == "bartok_night":
+        if s.strategy in ("modal_interchange", "chromatic_mediant"):
+            return 1.2
+        return 1.0
+    # Counterpoint Hybrid: two-line logic → reward pivot, common-tone
+    if engine == "counterpoint_hybrid":
+        if s.strategy in ("pivot_chord", "common_tone"):
+            return 1.2
+        return 1.0
+    # Polyphonic Labyrinth: dense polyphony → reward modal interchange, pivot
+    if engine == "polyphonic_labyrinth":
+        if s.strategy in ("modal_interchange", "pivot_chord"):
+            return 1.15
+        return 1.0
+    # Legacy aliases (metheny, coleman, schneider)
     if engine == "metheny":
         if s.strategy in ("chromatic_mediant", "common_tone"):
             return 1.2
-        if s.strategy == "dominant_injection" and s.cadence_type == "Strong":
-            return 0.9
         return 1.0
     if engine == "coleman":
         if s.strategy in ("common_tone", "chromatic_mediant"):
             return 1.15
         if s.cadence_type == "Strong":
             return 0.8
-        return 1.0
-    if engine == "zappa":
-        if s.strategy in ("chromatic_mediant", "dominant_injection"):
-            return 1.2
-        if s.strategy == "common_tone":
-            return 0.9
         return 1.0
     if engine == "schneider":
         if s.strategy in ("chromatic_mediant", "modal_interchange", "common_tone"):

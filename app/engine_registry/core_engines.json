@@ -1,0 +1,92 @@
+[
+  {
+    "id": "scofield_holland",
+    "name": "Scofield–Holland Groove",
+    "category": "behaviour",
+    "short_description": "Groove, dyadic guitar, bass movement",
+    "musical_purpose": "Rhythmic lift, dyadic voicings, active bass. Never static.",
+    "best_use_cases": ["rhythm-section forward", "medium-up tempo", "track 1 or live opener"],
+    "default_ensemble_notes": "Guitar dyadic voicings, walking or ostinato bass, light kit"
+  },
+  {
+    "id": "shorter_narrative",
+    "name": "Wayne Shorter Narrative",
+    "category": "structure",
+    "short_description": "Motivic storytelling, sectional logic",
+    "musical_purpose": "Sections unfold like scenes. Motivic foreshadowing, interlude between sections.",
+    "best_use_cases": ["structural pieces", "narrative pacing", "clear sectional logic"],
+    "default_ensemble_notes": "Clear sectional divisions, varied textures per section"
+  },
+  {
+    "id": "frisell_atmosphere",
+    "name": "Frisell Atmosphere",
+    "category": "structure",
+    "short_description": "Space, colour, restraint",
+    "musical_purpose": "Breathable texture, sparse voicings, suspended harmony.",
+    "best_use_cases": ["atmospheric contrast", "sparse passages", "after dense tracks"],
+    "default_ensemble_notes": "Dyads only in sparse passages, long-held pads, space between attacks"
+  },
+  {
+    "id": "counterpoint_hybrid",
+    "name": "Counterpoint / Tonality Hybrid",
+    "category": "structure",
+    "short_description": "Chamber voicings, two-line logic",
+    "musical_purpose": "Two or more independent voices, lyric gravity, no block harmony.",
+    "best_use_cases": ["chamber pieces", "guitar duo", "intimate tracks"],
+    "default_ensemble_notes": "Guitar + strings or guitar duo, independence of voices"
+  },
+  {
+    "id": "polyphonic_labyrinth",
+    "name": "Polyphonic Labyrinth",
+    "category": "structure",
+    "short_description": "Dense polyphony, inner motion",
+    "musical_purpose": "Dense but clear polyphony, labyrinthine form, inner motion.",
+    "best_use_cases": ["1–2 per album", "delicate dense texture", "multi-voice pieces"],
+    "default_ensemble_notes": "Multiple independent voices, alternate divisi logic"
+  },
+  {
+    "id": "metheny_bacharach",
+    "name": "Metheny–Bacharach Lyrical Architecture",
+    "category": "structure",
+    "short_description": "Lyrical form, singable arcs",
+    "musical_purpose": "Warm harmonic architecture, singable melody, harmonic surprise.",
+    "best_use_cases": ["singles", "radio", "emotional centre"],
+    "default_ensemble_notes": "Flugelhorn/brass for lyrical statements, warm voicings"
+  },
+  {
+    "id": "andrew_hill",
+    "name": "Andrew Hill Harmonic",
+    "category": "structure",
+    "short_description": "Chromatic harmony, structural tension",
+    "musical_purpose": "Chromatic density, harmonic tension, non-functional colour.",
+    "best_use_cases": ["modern jazz", "harmonic exploration", "structural tension"],
+    "default_ensemble_notes": "Chromatic voicings, tension layers"
+  },
+  {
+    "id": "tonality_vault",
+    "name": "Tonality Vault",
+    "category": "structure",
+    "short_description": "Melodic triads, quadratonics, tension layers",
+    "musical_purpose": "Core harmonic framework. Gravitational centre, tension hierarchy.",
+    "best_use_cases": ["all pieces", "harmonic depth", "voicing reference"],
+    "default_ensemble_notes": "Reference music/palettes/tonality-vault/"
+  },
+  {
+    "id": "coleman_rhythmic",
+    "name": "Coleman Rhythmic Architecture",
+    "category": "behaviour",
+    "short_description": "Axis drift, rhythmic freedom",
+    "musical_purpose": "Harmonic ambiguity, rhythmic flexibility, axis drift.",
+    "best_use_cases": ["free-form sections", "rhythmic exploration", "harmonic ambiguity"],
+    "default_ensemble_notes": "Flexible metre, harmonic openness"
+  },
+  {
+    "id": "wyble_linear",
+    "name": "Wyble Linear Counterpoint",
+    "category": "behaviour",
+    "short_description": "Two-line guitar, contrary motion",
+    "musical_purpose": "Two independent voices, dyadic voice-leading, guitar idiom.",
+    "best_use_cases": ["guitar studies", "two-line reduction", "solo guitar"],
+    "default_ensemble_notes": "Dyads preferred, upper melodic / lower bass guide"
+  }
+]

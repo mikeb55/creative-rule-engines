@@ -1,0 +1,32 @@
+[
+  {
+    "id": "modulation_menu",
+    "name": "modulation-menu-engine",
+    "purpose": "Style-aware modulation suggestions from chord progressions. Generates ranked modulation options.",
+    "when_to_use": "When planning key changes, bridge modulations, or harmonic transitions.",
+    "style_options": ["default", "ecm_axis", "jazz_modern", "jazz_rock", "pop_colour", "classical_structural"],
+    "mighty_engine_options": ["default", "scofield_holland", "shorter_narrative", "frisell_atmosphere", "wheeler_lyric", "stravinsky_pulse", "zappa_disruption", "slonimsky_harmonic", "bartok_night", "counterpoint_hybrid", "polyphonic_labyrinth"],
+    "location": "creative-engines/supporting-engines/modulation-menu-engine"
+  },
+  {
+    "id": "wyble_etude",
+    "name": "wyble-etude-engine",
+    "purpose": "Extract two-voice guitar studies from existing compositions.",
+    "when_to_use": "After composition, to generate practice etudes from the piece.",
+    "location": "creative-engines/supporting-engines/wyble-etude-engine"
+  },
+  {
+    "id": "orchestration_helper",
+    "name": "Orchestration Helper",
+    "purpose": "Guidance for instrumentation, voicing, and part writing.",
+    "when_to_use": "When arranging or orchestrating a composition.",
+    "location": "creative-engines/rules/engraving_rules.md"
+  },
+  {
+    "id": "voicing_helper",
+    "name": "Voicing Helper",
+    "purpose": "Tonality Vault voicings, drop-2/3, quadratonics.",
+    "when_to_use": "When choosing chord voicings and harmonic colour.",
+    "location": "music/palettes/tonality-vault/"
+  }
+]

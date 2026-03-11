@@ -4,27 +4,8 @@ import argparse
 from core.parser import parse_progression
 from core.strategies import generate_suggestions
 from core.scorer import score_and_rank
+from core.display import voice_leading_label, density_label
 from styles import get_weights
-
-
-def _voice_leading_label(s) -> str:
-    if s.strategy in ("common_tone", "pivot_chord", "modal_interchange"):
-        return "High"
-    if s.strategy == "chromatic_mediant":
-        return "Medium"
-    return "Low"
-
-
-def _density_label(s) -> str:
-    if s.emotional_tag in ("dramatic lift", "colour shift"):
-        return "Lift"
-    if s.emotional_tag in ("direct resolution", "smooth transition"):
-        return "Build"
-    if s.emotional_tag == "subtle drift":
-        return "Thin"
-    if s.strategy in ("chromatic_mediant", "dominant_injection") and s.cadence_type == "None":
-        return "Fracture"
-    return "Build"
 
 
 def main() -> None:
@@ -45,9 +26,9 @@ def main() -> None:
     )
 
     for i, s in enumerate(ranked, 1):
-        vl = _voice_leading_label(s)
+        vl = voice_leading_label(s)
         cad = s.cadence_type
-        density = _density_label(s)
+        density = density_label(s)
         style_align = "aligned" if args.style != "default" else "neutral"
         print(f"Suggestion #{i}")
         print(f"From: {s.from_region}")

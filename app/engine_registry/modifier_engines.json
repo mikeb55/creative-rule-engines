@@ -1,0 +1,30 @@
+[
+  {
+    "id": "zappa_disruption",
+    "name": "Zappa Disruption",
+    "short_description": "Disruption, controlled chaos, edge",
+    "allowed_locations": ["intro", "bridge", "transition", "coda", "interlude", "solo section"],
+    "warning": "Must NOT generate the whole piece. Use only in limited sections."
+  },
+  {
+    "id": "slonimsky_injection",
+    "name": "Slonimsky Interval Injection",
+    "short_description": "Interval cycles, systematic colour injection",
+    "allowed_locations": ["intro", "bridge", "transition", "coda", "interlude", "solo section"],
+    "warning": "Must NOT generate the whole piece. Use only in limited sections."
+  },
+  {
+    "id": "hill_distortion",
+    "name": "Hill Harmonic Distortion",
+    "short_description": "Chromatic distortion, tension spikes",
+    "allowed_locations": ["intro", "bridge", "transition", "coda", "interlude", "solo section"],
+    "warning": "Must NOT generate the whole piece. Use only in limited sections."
+  },
+  {
+    "id": "stravinsky_pulse",
+    "name": "Stravinsky Pulse Shift",
+    "short_description": "Metric irregularity, ostinato, pulse disruption",
+    "allowed_locations": ["intro", "bridge", "transition", "coda", "interlude", "solo section"],
+    "warning": "Must NOT generate the whole piece. Use only in limited sections."
+  }
+]
