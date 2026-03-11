@@ -1,0 +1,18 @@
+[build-system]
+requires = ["setuptools>=61.0"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "modulation-menu-engine"
+version = "0.1.0"
+description = "Canonical modulation menu engine for The Mighty Ten ecosystem"
+readme = "README.md"
+requires-python = ">=3.9"
+license = { text = "MIT" }
+
+[project.scripts]
+modmenu = "cli:main"
+
+[tool.setuptools.packages.find]
+where = ["."]
+include = ["core*", "styles*"]
