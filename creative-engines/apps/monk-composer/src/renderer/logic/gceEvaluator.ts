@@ -97,6 +97,10 @@ export function evaluateGCE(comp: Composition, target: string): { scores: GCESco
     noTexturalReduction: false,
     tooManyAllInstrumentsActive: false,
     lackComplementaryRhythm: false,
+    violaInactivity: false,
+    celloInactivity: false,
+    lackCounterpointEvents: false,
+    constantEnsembleDensity: false,
   };
 
   const cadenceStrength = comp.harmony?.length
@@ -129,6 +133,11 @@ export function evaluateGCE(comp: Composition, target: string): { scores: GCESco
     const lackComplementaryRhythm = (diag?.complementaryRhythmScore ?? 0.8) < 0.6;
     const violaUsefulnessLow = (diag?.violaUsefulnessScore ?? 0.8) < 0.7;
     const celloIndependenceLow = (diag?.celloIndependenceScore ?? 0.75) < 0.65;
+    const violaInactivity = (diag?.violaVln2Ratio ?? 1) < 0.5;
+    const celloInactivity = (diag?.celloVln1Ratio ?? 1) < 0.4;
+    const minCounterpointPerPhrase = Math.max(1, Math.floor(bars / 10));
+    const lackCounterpointEvents = (diag?.counterpointEventCount ?? 0) < minCounterpointPerPhrase;
+    const constantEnsembleDensity = (diag?.densityViolations ?? 0) > Math.floor(bars / 4);
 
     warnings.staticInnerVoice = staticInner;
     warnings.celloLoop = celloLoop;
@@ -144,6 +153,10 @@ export function evaluateGCE(comp: Composition, target: string): { scores: GCESco
     warnings.noTexturalReduction = noTexturalReduction;
     warnings.tooManyAllInstrumentsActive = tooManyAllInstrumentsActive;
     warnings.lackComplementaryRhythm = lackComplementaryRhythm;
+    warnings.violaInactivity = violaInactivity;
+    warnings.celloInactivity = celloInactivity;
+    warnings.lackCounterpointEvents = lackCounterpointEvents;
+    warnings.constantEnsembleDensity = constantEnsembleDensity;
 
     const penalty =
       (staticInner ? 1.5 : 0) +
@@ -161,13 +174,17 @@ export function evaluateGCE(comp: Composition, target: string): { scores: GCESco
       (tooManyAllInstrumentsActive ? 0.8 : 0) +
       (lackComplementaryRhythm ? 0.6 : 0) +
       (violaUsefulnessLow ? 0.5 : 0) +
-      (celloIndependenceLow ? 0.5 : 0);
+      (celloIndependenceLow ? 0.5 : 0) +
+      (violaInactivity ? 1.0 : 0) +
+      (celloInactivity ? 0.8 : 0) +
+      (lackCounterpointEvents ? 0.9 : 0) +
+      (constantEnsembleDensity ? 0.7 : 0);
 
     targetIdiom = Math.max(2, targetIdiom * 10 - penalty) / 10;
-    motivicIntegrity = Math.max(0.3, motivicIntegrity - (noMotivicMigration ? 0.15 : 0) - (repeatedBarSyndrome ? 0.1 : 0));
-    rhythmicPersonality = Math.max(0.3, rhythmicPersonality - (repeatedCells >= 3 ? 0.1 : 0) - (repeated2BarLoopSyndrome ? 0.15 : 0));
+    motivicIntegrity = Math.max(0.3, motivicIntegrity - (noMotivicMigration ? 0.15 : 0) - (repeatedBarSyndrome ? 0.1 : 0) - (lackCounterpointEvents ? 0.1 : 0));
+    rhythmicPersonality = Math.max(0.3, rhythmicPersonality - (repeatedCells >= 3 ? 0.1 : 0) - (repeated2BarLoopSyndrome ? 0.15 : 0) - (constantEnsembleDensity ? 0.08 : 0));
     harmonicCoherence = Math.max(0.3, harmonicCoherence - (staticInner ? 0.1 : 0));
-    originality = Math.max(0.3, originality - (celloLoop || violaFiller ? 0.15 : 0) - (tooManyAllInstrumentsActive ? 0.1 : 0));
+    originality = Math.max(0.3, originality - (celloLoop || violaFiller ? 0.15 : 0) - (tooManyAllInstrumentsActive ? 0.1 : 0) - (violaInactivity ? 0.12 : 0));
     afterglow = (motivicIntegrity + rhythmicPersonality) / 2;
   }
 

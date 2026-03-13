@@ -103,6 +103,10 @@ export interface Warnings {
   noTexturalReduction?: boolean;
   tooManyAllInstrumentsActive?: boolean;
   lackComplementaryRhythm?: boolean;
+  violaInactivity?: boolean;
+  celloInactivity?: boolean;
+  lackCounterpointEvents?: boolean;
+  constantEnsembleDensity?: boolean;
 }
 
 export interface QuartetDiagnostics {
@@ -118,6 +122,12 @@ export interface QuartetDiagnostics {
   textureReductionCount?: number;
   allVoicesActiveOveruse?: boolean;
   complementaryRhythmScore?: number;
+  violaVln2Ratio?: number;
+  celloVln1Ratio?: number;
+  counterpointEventCount?: number;
+  motifTransformCountPer16?: number;
+  densityViolations?: number;
+  violaMotifBars?: number;
 }
 
 export interface Preset {

@@ -44,13 +44,16 @@ export function runRevisionLoop(
 
     if (target === 'string_quartet' && comp.texture?.length === 4 && comp.motif && comp.harmony) {
       const quartetFixes = [
+        warnings.violaInactivity,
+        warnings.violaFiller,
+        warnings.celloInactivity,
+        warnings.constantEnsembleDensity,
+        warnings.tooManyAllInstrumentsActive,
+        warnings.noMotivicMigration,
+        warnings.lackCounterpointEvents,
         warnings.repeatedBarSyndrome,
         warnings.repeated2BarLoopSyndrome,
-        warnings.violaFiller,
-        warnings.celloLoop,
-        warnings.tooManyAllInstrumentsActive,
         warnings.noTexturalReduction,
-        warnings.noMotivicMigration,
         warnings.lackComplementaryRhythm,
         warnings.staticInnerVoice,
         warnings.repeatedAccompanimentCell,
@@ -98,6 +101,12 @@ export function runRevisionLoop(
             textureReductionCount: result.diagnostics?.textureReductionCount,
             allVoicesActiveOveruse: result.diagnostics?.allVoicesActiveOveruse,
             complementaryRhythmScore: result.diagnostics?.complementaryRhythmScore,
+            violaVln2Ratio: result.diagnostics?.violaVln2Ratio,
+            celloVln1Ratio: result.diagnostics?.celloVln1Ratio,
+            counterpointEventCount: result.diagnostics?.counterpointEventCount,
+            motifTransformCountPer16: result.diagnostics?.motifTransformCountPer16,
+            densityViolations: result.diagnostics?.densityViolations,
+            violaMotifBars: result.diagnostics?.violaMotifBars,
           },
           metadata: { ...comp.metadata, revisionCount: revisionCount + 1 },
         };

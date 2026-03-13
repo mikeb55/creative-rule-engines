@@ -83,6 +83,12 @@ export function generateDraft(
       textureReductionCount: result.diagnostics?.textureReductionCount,
       allVoicesActiveOveruse: result.diagnostics?.allVoicesActiveOveruse,
       complementaryRhythmScore: result.diagnostics?.complementaryRhythmScore,
+      violaVln2Ratio: result.diagnostics?.violaVln2Ratio,
+      celloVln1Ratio: result.diagnostics?.celloVln1Ratio,
+      counterpointEventCount: result.diagnostics?.counterpointEventCount,
+      motifTransformCountPer16: result.diagnostics?.motifTransformCountPer16,
+      densityViolations: result.diagnostics?.densityViolations,
+      violaMotifBars: result.diagnostics?.violaMotifBars,
     };
   } else {
     texture = translateToTarget(

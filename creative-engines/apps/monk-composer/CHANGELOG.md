@@ -2,6 +2,24 @@
 
 ## [Unreleased]
 
+### 2025-03-11 — Quartet Chamber Composition Upgrade (GCE ≥ 8)
+
+- **Viola agency system** — Viola note count 60–90% of Violin 2; must carry motif at least once every 12 bars; roles alternate every 2–4 bars (counterline, imitation, suspension tension, harmonic wedge, registral bridge, motivic fragment carrier). Auto-rewrite when viola < 50% of Vln2.
+
+- **Ensemble density control** — Activity mask limits to 2–3 instruments normally active. At least one rest/sustain every 3 bars. All four voices only at cadence, climax, or tutti. Density scoring in GCE evaluator.
+
+- **Motif engine strengthened** — Seed motif with 8 transformation types (transpose, invert, rhythm_disp, truncate, expand, compress, interval_expand, interval_compress). At least three transformations per 16 bars; motif in ≥3 instruments.
+
+- **Counterpoint insertion** — Every 8–12 bars: imitation, contrary-motion, or staggered-entry events. Melody fallback when bar is empty.
+
+- **Activity balancing** — Viola < 50% of Vln2 or Cello < 40% of Vln1 triggers revision loop to rewrite those parts.
+
+- **Quartet GCE penalties tightened** — Strengthened penalties for viola inactivity, cello inactivity, lack of counterpoint events, constant ensemble density, static accompaniment, weak motif migration.
+
+- **Revision loop priority** — 1) rewrite viola, 2) rebalance density, 3) inject motif migration, 4) add counterpoint events, 5) reduce simultaneous voice motion, 6) rewrite phrase endings.
+
+- **Regenerated** — `outputs/barry-working-strings.musicxml` with improved viola activity, motif migration, texture contrast, and ensemble density.
+
 ### 2025-03-11 — Final Quartet Corrective Pass
 
 - **Stricter anti-repetition rules** — No 1-bar pitch-rhythm cell may repeat more than twice; no 2-bar cell unchanged more than twice; accompaniment must vary within 4 bars.
