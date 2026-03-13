@@ -44,13 +44,15 @@ export function runRevisionLoop(
 
     if (target === 'string_quartet' && comp.texture?.length === 4 && comp.motif && comp.harmony) {
       const quartetFixes = [
+        warnings.continuous4VoiceMotion,
         warnings.excessiveSimultaneousMotion,
+        warnings.violaZeroRest,
         warnings.celloAlwaysOn,
         warnings.celloZeroRest,
+        warnings.fewExposedDuoTrio,
         warnings.lowViolaAttackDensity,
         warnings.lowViolaMotifParticipation,
         warnings.lowViolaRoleEntropy,
-        warnings.fewExposedDuoTrio,
         warnings.violaFiller,
         warnings.constantEnsembleDensity,
         warnings.tooManyAllInstrumentsActive,

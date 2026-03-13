@@ -98,6 +98,8 @@ export function AuditPanel({ scores, warnings, revisionCount, composition, instr
           {warnings.insufficientTexturalReduction && <div className="warning-item">Insufficient textural reduction</div>}
           {warnings.fewExposedDuoTrio && <div className="warning-item">Few exposed duo/trio textures</div>}
           {warnings.highSustainedFiller && <div className="warning-item">High sustained filler without function</div>}
+          {warnings.violaZeroRest && <div className="warning-item">Viola zero-rest (no rests in inner voice)</div>}
+          {warnings.continuous4VoiceMotion && <div className="warning-item">Continuous 4-voice motion</div>}
           {warnings.nonBowable && <div className="warning-item">Non-bowable line</div>}
           {warnings.fakeKeyboardDoubling && <div className="warning-item">Fake keyboard doubling</div>}
           {!Object.values(warnings).some(Boolean) && (

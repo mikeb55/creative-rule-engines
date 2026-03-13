@@ -2,6 +2,18 @@
 
 ## [Unreleased]
 
+### 2025-03-11 — Quartet Texture Architecture
+
+- **Added texture architecture system** — Texture plan built before voice generation. Piece divided into sections of 2–4 measures; each section assigned FULL, TRIO, DUO, SOLO_PLUS_PUNCTUATION, or PEDAL_TEXTURE. Voices generated according to plan; inactive instruments rest, sustain, or produce short punctuation.
+
+- **Improved density contrast** — Per 16 measures: at least one DUO, one TRIO, one SOLO_PLUS_PUNCTUATION; FULL texture ≤ 40% of bars. Exposed duo/trio sections enforced.
+
+- **Enforced inner voice rests** — Viola must rest in at least one section per 8 measures; must lead/answer motif per 12 measures. Cello must rest or sustain alone per 10 measures; sometimes participates in counterline rather than bass only.
+
+- **New evaluation penalties** — Continuous 4-voice motion, viola zero-rest, missing duo/trio textures, excessive texture uniformity.
+
+- **Regenerated quartet example** — `outputs/lets-see.musicxml` with viola rests, texture contrast, duo/trio sections, inner voices carrying motif material.
+
 ### 2025-03-11 — Quartet Evaluation Metrics Overhaul
 
 - **Quartet evaluation no longer relies on raw note counts** — Replaced with active duration, attack density, rest ratio, role entropy, motif participation, texture occupancy, and simultaneous-motion density.

@@ -116,6 +116,8 @@ export interface Warnings {
   insufficientTexturalReduction?: boolean;
   fewExposedDuoTrio?: boolean;
   highSustainedFiller?: boolean;
+  violaZeroRest?: boolean;
+  continuous4VoiceMotion?: boolean;
 }
 
 export interface QuartetDiagnostics {

@@ -102,6 +102,8 @@ export function evaluateGCE(comp: Composition, target: string): { scores: GCESco
     celloInactivity: false,
     lackCounterpointEvents: false,
     constantEnsembleDensity: false,
+    violaZeroRest: false,
+    continuous4VoiceMotion: false,
     lowViolaAttackDensity: false,
     lowViolaMotifParticipation: false,
     lowViolaRoleEntropy: false,
@@ -172,6 +174,8 @@ export function evaluateGCE(comp: Composition, target: string): { scores: GCESco
     const insufficientTexturalReduction = (diag?.textureReductionCount ?? 0) < Math.floor(bars / 6);
     const fewExposedDuoTrio = (metrics.exposedDuoTrioBars ?? 0) < Math.floor(bars / 4);
     const highSustainedFiller = violaFiller && (metrics.viola.attackDensity ?? 0) < 1.5;
+    const violaZeroRest = (metrics.viola.restRatio ?? 0) === 0 && bars >= 8;
+    const continuous4VoiceMotion = (metrics.simultaneousMotionRatio ?? 0) > 0.45;
 
     warnings.staticInnerVoice = staticInner;
     warnings.celloLoop = celloLoop;
@@ -197,6 +201,8 @@ export function evaluateGCE(comp: Composition, target: string): { scores: GCESco
     warnings.highSustainedFiller = highSustainedFiller;
     warnings.lackCounterpointEvents = lackCounterpointEvents;
     warnings.constantEnsembleDensity = constantEnsembleDensity;
+    warnings.violaZeroRest = violaZeroRest;
+    warnings.continuous4VoiceMotion = continuous4VoiceMotion;
 
     const penalty =
       (staticInner ? 1.5 : 0) +
@@ -224,7 +230,9 @@ export function evaluateGCE(comp: Composition, target: string): { scores: GCESco
       (fewExposedDuoTrio ? 0.6 : 0) +
       (highSustainedFiller ? 0.7 : 0) +
       (lackCounterpointEvents ? 0.9 : 0) +
-      (constantEnsembleDensity ? 0.7 : 0);
+      (constantEnsembleDensity ? 0.7 : 0) +
+      (violaZeroRest ? 0.8 : 0) +
+      (continuous4VoiceMotion ? 0.9 : 0);
 
     targetIdiom = Math.max(2, targetIdiom * 10 - penalty) / 10;
     motivicIntegrity = Math.max(0.3, motivicIntegrity - (noMotivicMigration ? 0.15 : 0) - (repeatedBarSyndrome ? 0.1 : 0) - (lackCounterpointEvents ? 0.1 : 0));
