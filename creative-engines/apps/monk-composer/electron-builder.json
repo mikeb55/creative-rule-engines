@@ -1,0 +1,28 @@
+{
+  "appId": "com.creative-rule-engines.monk-composer",
+  "productName": "Monk Composer",
+  "directories": {
+    "output": "release"
+  },
+  "files": [
+    "dist/**/*",
+    "dist-electron/**/*",
+    "assets/**/*"
+  ],
+  "extraResources": [
+    {
+      "from": "../../engines/",
+      "to": "engines",
+      "filter": ["**/*.md"]
+    }
+  ],
+  "win": {
+    "target": ["nsis", "portable"],
+    "icon": "assets/app-icon.ico"
+  },
+  "nsis": {
+    "oneClick": false,
+    "allowToChangeInstallationDirectory": true,
+    "shortcutName": "Monk Composer"
+  }
+}

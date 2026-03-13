@@ -9,4 +9,10 @@ Thumbs.db
 *~
 *.swp
 
+# Node / build
+node_modules/
+dist/
+dist-electron/
+release/
+*.log
 
