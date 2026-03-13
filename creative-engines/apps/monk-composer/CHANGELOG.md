@@ -2,6 +2,22 @@
 
 ## [Unreleased]
 
+### 2025-03-11 — Quartet Evaluation Metrics Overhaul
+
+- **Quartet evaluation no longer relies on raw note counts** — Replaced with active duration, attack density, rest ratio, role entropy, motif participation, texture occupancy, and simultaneous-motion density.
+
+- **Added quartet metrics module** — `quartetMetrics.ts` computes per-instrument active duration, attack density, rest ratio, role entropy, motif participation; plus simultaneous-motion ratio and exposed duo/trio bar count.
+
+- **Improved viola agency rules** — Minimum 50% of Vln2 attack density (unless sustained tension); motif participation every 8–12 bars; role rotation every 2–4 bars.
+
+- **Reduced cello always-on behaviour** — Cello must have rests or textural reduction every 6–10 measures; explicit rest bars inserted when not in marked pedal span.
+
+- **Added texture occupancy and simultaneous-motion controls** — Penalties for excessive all-four-moving passages; rewards for exposed duo/trio textures and textural reduction.
+
+- **New GCE penalties** — Low viola attack density, low viola motif participation, low viola role entropy, cello always-on, cello zero-rest, excessive simultaneous motion, insufficient textural reduction, few exposed duo/trio, high sustained filler without structural function.
+
+- **Regenerated** — `outputs/lets-see.musicxml` with more articulated viola agency, cello rests, fewer all-voices-moving passages, stronger motif participation in inner voices, and more exposed textures.
+
 ### 2025-03-11 — Quartet Chamber Composition Upgrade (GCE ≥ 8)
 
 - **Viola agency system** — Viola note count 60–90% of Violin 2; must carry motif at least once every 12 bars; roles alternate every 2–4 bars (counterline, imitation, suspension tension, harmonic wedge, registral bridge, motivic fragment carrier). Auto-rewrite when viola < 50% of Vln2.

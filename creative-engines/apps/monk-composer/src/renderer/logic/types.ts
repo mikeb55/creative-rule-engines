@@ -107,6 +107,15 @@ export interface Warnings {
   celloInactivity?: boolean;
   lackCounterpointEvents?: boolean;
   constantEnsembleDensity?: boolean;
+  lowViolaAttackDensity?: boolean;
+  lowViolaMotifParticipation?: boolean;
+  lowViolaRoleEntropy?: boolean;
+  celloAlwaysOn?: boolean;
+  celloZeroRest?: boolean;
+  excessiveSimultaneousMotion?: boolean;
+  insufficientTexturalReduction?: boolean;
+  fewExposedDuoTrio?: boolean;
+  highSustainedFiller?: boolean;
 }
 
 export interface QuartetDiagnostics {
@@ -128,6 +137,16 @@ export interface QuartetDiagnostics {
   motifTransformCountPer16?: number;
   densityViolations?: number;
   violaMotifBars?: number;
+  celloMotifBars?: number;
+  violaRoleByBar?: string[];
+  celloRoleByBar?: string[];
+  activeDurationByInstrument?: [number, number, number, number];
+  attackDensityByInstrument?: [number, number, number, number];
+  restRatioByInstrument?: [number, number, number, number];
+  roleEntropyByInstrument?: [number, number, number, number];
+  motifParticipationByInstrument?: [number, number, number, number];
+  simultaneousMotionRatio?: number;
+  exposedDuoTrioBars?: number;
 }
 
 export interface Preset {

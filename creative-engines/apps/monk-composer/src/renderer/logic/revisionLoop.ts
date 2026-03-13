@@ -44,9 +44,14 @@ export function runRevisionLoop(
 
     if (target === 'string_quartet' && comp.texture?.length === 4 && comp.motif && comp.harmony) {
       const quartetFixes = [
-        warnings.violaInactivity,
+        warnings.excessiveSimultaneousMotion,
+        warnings.celloAlwaysOn,
+        warnings.celloZeroRest,
+        warnings.lowViolaAttackDensity,
+        warnings.lowViolaMotifParticipation,
+        warnings.lowViolaRoleEntropy,
+        warnings.fewExposedDuoTrio,
         warnings.violaFiller,
-        warnings.celloInactivity,
         warnings.constantEnsembleDensity,
         warnings.tooManyAllInstrumentsActive,
         warnings.noMotivicMigration,
@@ -54,12 +59,12 @@ export function runRevisionLoop(
         warnings.repeatedBarSyndrome,
         warnings.repeated2BarLoopSyndrome,
         warnings.noTexturalReduction,
+        warnings.insufficientTexturalReduction,
         warnings.lackComplementaryRhythm,
         warnings.staticInnerVoice,
         warnings.repeatedAccompanimentCell,
         warnings.noTextureRotation,
         warnings.nonBowable,
-        warnings.upperLowerDisconnect,
       ].filter(Boolean);
       if (quartetFixes.length > 0) {
         const result = generateQuartet({
@@ -107,6 +112,16 @@ export function runRevisionLoop(
             motifTransformCountPer16: result.diagnostics?.motifTransformCountPer16,
             densityViolations: result.diagnostics?.densityViolations,
             violaMotifBars: result.diagnostics?.violaMotifBars,
+            celloMotifBars: result.diagnostics?.celloMotifBars,
+            violaRoleByBar: result.diagnostics?.violaRoleByBar,
+            celloRoleByBar: result.diagnostics?.celloRoleByBar,
+            activeDurationByInstrument: result.diagnostics?.activeDurationByInstrument,
+            attackDensityByInstrument: result.diagnostics?.attackDensityByInstrument,
+            restRatioByInstrument: result.diagnostics?.restRatioByInstrument,
+            roleEntropyByInstrument: result.diagnostics?.roleEntropyByInstrument,
+            motifParticipationByInstrument: result.diagnostics?.motifParticipationByInstrument,
+            simultaneousMotionRatio: result.diagnostics?.simultaneousMotionRatio,
+            exposedDuoTrioBars: result.diagnostics?.exposedDuoTrioBars,
           },
           metadata: { ...comp.metadata, revisionCount: revisionCount + 1 },
         };

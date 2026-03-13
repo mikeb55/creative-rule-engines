@@ -16,7 +16,8 @@
     "electron:dev": "concurrently \"vite\" \"wait-on http://localhost:5173 && electron .\"",
     "electron:build": "tsc && vite build && electron-builder --win",
     "generate-quartet-demo": "npx tsx scripts/generate-quartet-demo.ts",
-    "generate-barry-working-strings": "npx tsx scripts/generate-barry-working-strings.ts"
+    "generate-barry-working-strings": "npx tsx scripts/generate-barry-working-strings.ts",
+    "generate-lets-see": "npx tsx scripts/generate-lets-see.ts"
   },
   "dependencies": {
     "react": "^18.2.0",

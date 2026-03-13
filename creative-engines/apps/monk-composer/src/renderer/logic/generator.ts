@@ -89,6 +89,16 @@ export function generateDraft(
       motifTransformCountPer16: result.diagnostics?.motifTransformCountPer16,
       densityViolations: result.diagnostics?.densityViolations,
       violaMotifBars: result.diagnostics?.violaMotifBars,
+      celloMotifBars: result.diagnostics?.celloMotifBars,
+      violaRoleByBar: result.diagnostics?.violaRoleByBar,
+      celloRoleByBar: result.diagnostics?.celloRoleByBar,
+      activeDurationByInstrument: result.diagnostics?.activeDurationByInstrument,
+      attackDensityByInstrument: result.diagnostics?.attackDensityByInstrument,
+      restRatioByInstrument: result.diagnostics?.restRatioByInstrument,
+      roleEntropyByInstrument: result.diagnostics?.roleEntropyByInstrument,
+      motifParticipationByInstrument: result.diagnostics?.motifParticipationByInstrument,
+      simultaneousMotionRatio: result.diagnostics?.simultaneousMotionRatio,
+      exposedDuoTrioBars: result.diagnostics?.exposedDuoTrioBars,
     };
   } else {
     texture = translateToTarget(

@@ -52,18 +52,19 @@ export function AuditPanel({ scores, warnings, revisionCount, composition, instr
       )}
       {isQuartet && diag && (
         <div style={{ marginTop: 16 }}>
-          <h4 style={{ margin: '0 0 8px', fontSize: '0.85rem' }}>Quartet diagnostics</h4>
-          <div className="muted" style={{ fontSize: '0.8rem' }}>
+          <h4 style={{ margin: '0 0 8px', fontSize: '0.85rem' }}>Quartet metrics</h4>
+          <div className="muted" style={{ fontSize: '0.75rem', lineHeight: 1.4 }}>
+            <div><strong>Active duration</strong> Vn1/Vn2/Vla/Vc: {diag.activeDurationByInstrument?.map(d => d?.toFixed(1) ?? '-').join(' / ')}</div>
+            <div><strong>Attack density</strong> (per bar): {diag.attackDensityByInstrument?.map(d => d?.toFixed(2) ?? '-').join(' / ')}</div>
+            <div><strong>Rest ratio</strong>: {diag.restRatioByInstrument?.map(r => `${(r ?? 0) * 100}%`).join(' / ')}</div>
+            <div><strong>Role entropy</strong>: {diag.roleEntropyByInstrument?.map(e => (e ?? 0).toFixed(2)).join(' / ')}</div>
+            <div><strong>Motif participation</strong> (bars): {diag.motifParticipationByInstrument?.join(' / ')}</div>
+            <div><strong>Simultaneous-motion</strong>: {((diag.simultaneousMotionRatio ?? 0) * 100).toFixed(1)}%</div>
+            <div><strong>Texture reduction</strong>: {diag.textureReductionCount ?? 0} · <strong>Exposed duo/trio</strong>: {diag.exposedDuoTrioBars ?? 0} bars</div>
+          </div>
+          <div style={{ fontSize: '0.8rem', marginTop: 6 }}>
             Texture rotations: {diag.textureRotationCount} · Motif migrations: {diag.motifMigrationCount}
             {(diag.repeatedBarWarnings ?? diag.repeatedCellWarnings ?? 0) > 0 && ` · Repeated bar: ${diag.repeatedBarWarnings ?? diag.repeatedCellWarnings}`}
-            {(diag.repeated2BarLoopWarnings ?? 0) > 0 && ` · 2-bar loop: ${diag.repeated2BarLoopWarnings}`}
-            {diag.textureReductionCount !== undefined && ` · Texture reduction: ${diag.textureReductionCount}`}
-            {diag.bowabilityWarnings > 0 && ` · Bowability: ${diag.bowabilityWarnings}`}
-          </div>
-          <div style={{ fontSize: '0.8rem', marginTop: 4 }}>
-            Viola usefulness: {Math.round((diag.violaUsefulnessScore ?? 0) * 100)}% · 
-            Cello independence: {Math.round((diag.celloIndependenceScore ?? 0) * 100)}% · 
-            Complementary rhythm: {Math.round((diag.complementaryRhythmScore ?? diag.innerVoiceIndependenceScore ?? 0) * 100)}%
           </div>
           {diag.allVoicesActiveOveruse && <div className="warning-item" style={{ marginTop: 4 }}>All-voices-active overuse</div>}
         </div>
@@ -88,7 +89,15 @@ export function AuditPanel({ scores, warnings, revisionCount, composition, instr
           {warnings.lackComplementaryRhythm && <div className="warning-item">Lack of complementary rhythm</div>}
           {warnings.noTextureRotation && <div className="warning-item">No texture rotation</div>}
           {warnings.noMotivicMigration && <div className="warning-item">No motivic migration</div>}
-          {warnings.upperLowerDisconnect && <div className="warning-item">Upper/lower layer disconnect</div>}
+          {warnings.lowViolaAttackDensity && <div className="warning-item">Low viola attack density</div>}
+          {warnings.lowViolaMotifParticipation && <div className="warning-item">Low viola motif participation</div>}
+          {warnings.lowViolaRoleEntropy && <div className="warning-item">Low viola role entropy</div>}
+          {warnings.celloAlwaysOn && <div className="warning-item">Cello always-on texture</div>}
+          {warnings.celloZeroRest && <div className="warning-item">Cello zero-rest syndrome</div>}
+          {warnings.excessiveSimultaneousMotion && <div className="warning-item">Excessive simultaneous motion</div>}
+          {warnings.insufficientTexturalReduction && <div className="warning-item">Insufficient textural reduction</div>}
+          {warnings.fewExposedDuoTrio && <div className="warning-item">Few exposed duo/trio textures</div>}
+          {warnings.highSustainedFiller && <div className="warning-item">High sustained filler without function</div>}
           {warnings.nonBowable && <div className="warning-item">Non-bowable line</div>}
           {warnings.fakeKeyboardDoubling && <div className="warning-item">Fake keyboard doubling</div>}
           {!Object.values(warnings).some(Boolean) && (

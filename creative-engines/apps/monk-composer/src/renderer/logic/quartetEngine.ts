@@ -1,13 +1,12 @@
 /**
  * Quartet Engine - Chamber composition generation (GCE ≥ 8 target)
- * - Viola agency: 60-90% of Vln2 activity, motif every 12 bars, role alternation every 2-4 bars
- * - Ensemble density: 2-3 instruments active normally; all-4 only at cadence/climax/tutti
- * - Motif engine: seed + transformations (transpose, invert, rhythm_disp, expand, compress, truncate) per 16 bars
- * - Counterpoint: imitation, contrary-motion, staggered entry every 8-12 bars
- * - Activity balancing: viola ≥ 50% Vln2, cello ≥ 40% Vln1; revision triggers if not met
- * - Anti-repetition: no 1-bar cell >2 repeats, accompaniment mutates every 4 bars
+ * - Metrics: active duration, attack density, rest ratio, role entropy, motif participation
+ * - Viola: ≥50% Vln2 attack density (unless sustained tension), motif every 8-12 bars, rotate roles 2-4 bars
+ * - Cello: non-zero rests every 6-10 bars, not always-on
+ * - Ensemble: 2-3 active normally; all-4 only at cadence/climax/tutti; exposed duo/trio textures
  */
 import type { Note, Chord } from './types';
+import { computeQuartetMetrics } from './quartetMetrics';
 
 const ROOT_SEMITONE: Record<string, number> = {
   C: 0, 'C#': 1, Db: 1, D: 2, 'D#': 3, Eb: 3, E: 4, F: 5, 'F#': 6, Gb: 6,
@@ -75,6 +74,16 @@ export interface QuartetDiagnosticsOutput {
   motifTransformCountPer16: number;
   densityViolations: number;
   violaMotifBars: number;
+  celloMotifBars: number;
+  violaRoleByBar: string[];
+  celloRoleByBar: string[];
+  activeDurationByInstrument: [number, number, number, number];
+  attackDensityByInstrument: [number, number, number, number];
+  restRatioByInstrument: [number, number, number, number];
+  roleEntropyByInstrument: [number, number, number, number];
+  motifParticipationByInstrument: [number, number, number, number];
+  simultaneousMotionRatio: number;
+  exposedDuoTrioBars: number;
 }
 
 export interface QuartetGenerationOutput {
@@ -246,7 +255,12 @@ function getActiveInstruments(bar: number, totalBars: number, seed: number): Set
 }
 
 function shouldViolaCarryMotif(bar: number): boolean {
-  return bar % 12 === 0 || bar % 12 === 6;
+  return bar % 10 === 0 || bar % 10 === 5;
+}
+
+function shouldCelloRest(bar: number, totalBars: number): boolean {
+  if (isTuttiBar(bar, totalBars)) return false;
+  return bar % 8 === 5 || bar % 10 === 7;
 }
 
 function getCounterpointForBar(bar: number, seed: number): CounterpointType | null {
@@ -293,6 +307,9 @@ export function generateQuartet(input: QuartetGenerationInput): QuartetGeneratio
   const celloBarSigs: string[] = [];
   const viola2BarSigs: string[] = [];
   const cello2BarSigs: string[] = [];
+  const violaRoleByBar: string[] = [];
+  const celloRoleByBar: string[] = [];
+  let celloMotifBars = 0;
   let prevViolaAccomp: string | null = null;
   let violaAccompBarsUnchanged = 0;
 
@@ -324,6 +341,8 @@ export function generateQuartet(input: QuartetGenerationInput): QuartetGeneratio
 
     if (reduceTexture) textureReductionCount++;
     activeCountPerBar.push(activeInstruments.size);
+    violaRoleByBar[bar] = violaRole;
+    celloRoleByBar[bar] = celloRole;
 
     const cRoot = chord ? 36 + root : 36;
     const cFifth = chord ? 36 + fifth : 43;
@@ -375,6 +394,7 @@ export function generateQuartet(input: QuartetGenerationInput): QuartetGeneratio
             for (const n of frag) {
               celloNotes.push({ ...n, pitch: Math.min(72, Math.max(36, n.pitch)), offset: (n.offset ?? barStart) });
             }
+            celloMotifBars++;
             if (frag.length >= 2) motifMigrations++;
           } else {
             const walk = walkingBassFigure(barStart, root, fifth, chordTonesForBass, seed + bar, nextRoot);
@@ -467,6 +487,7 @@ export function generateQuartet(input: QuartetGenerationInput): QuartetGeneratio
           } else if (celloRole === 'motivic_fragment' && barMelody.length > 0 && bar % 4 === 1) {
             const frag = motifTransform(barMelody.slice(0, 2), 'invert');
             motifTransformCount++;
+            celloMotifBars++;
             for (const n of frag) {
               celloNotes.push({ ...n, pitch: Math.min(72, Math.max(36, n.pitch)), offset: (n.offset ?? barStart) + 0.5 });
             }
@@ -605,10 +626,26 @@ export function generateQuartet(input: QuartetGenerationInput): QuartetGeneratio
     }
   }
 
+  const celloRestBars = new Set<number>();
+  for (let bar = 0; bar < totalBars; bar++) {
+    if (shouldCelloRest(bar, totalBars)) celloRestBars.add(bar);
+  }
+  const filteredCello = celloNotes.filter(n => {
+    const bar = Math.floor((n.offset ?? 0) / beatsPerBar);
+    return !celloRestBars.has(bar);
+  });
+  for (const bar of celloRestBars) {
+    filteredCello.push({ pitch: 0, duration: beatsPerBar, offset: bar * beatsPerBar, rest: true });
+  }
+  filteredCello.sort((a, b) => (a.offset ?? 0) - (b.offset ?? 0));
+  celloNotes.length = 0;
+  celloNotes.push(...filteredCello);
+
   const clamp = (p: number, lo: number, hi: number) => Math.min(hi, Math.max(lo, p));
   const applyBowability = (arr: (Note & { offset: number })[], lo: number, hi: number) => {
     const out = arr.map((n, i) => {
-      const prev = i > 0 ? arr[i - 1].pitch : n.pitch;
+      if (n.rest) return { ...n };
+      const prev = i > 0 ? (arr[i - 1].rest ? n.pitch : arr[i - 1].pitch) : n.pitch;
       const safe = bowableLeap(prev, n.pitch, 9);
       return { ...n, pitch: clamp(safe, lo, hi) };
     });
@@ -664,6 +701,35 @@ export function generateQuartet(input: QuartetGenerationInput): QuartetGeneratio
     outViola.sort((a, b) => (a.offset ?? 0) - (b.offset ?? 0));
   }
 
+  const violaAttackCount = outViola.filter(n => !n.rest).length;
+  const vln2AttackCount = vn2Notes.filter(n => !n.rest).length;
+  const violaAttackRatio = vln2AttackCount > 0 ? violaAttackCount / vln2AttackCount : 1;
+  if (violaAttackRatio < 0.5 && vln2AttackCount > 0) {
+    for (let b = 0; b < totalBars; b++) {
+      const inBar = outViola.filter(n => !n.rest && (n.offset ?? 0) >= b * beatsPerBar && (n.offset ?? 0) < (b + 1) * beatsPerBar).length;
+      if (inBar >= 2) continue;
+      const floor = whichTextureFloor(b, totalBars, rotationOffset);
+      const vRole = violaRoleForBar(b, floor, b + revisionSeed);
+      if (vRole === 'suspension_tension') continue;
+      const barStart = b * beatsPerBar;
+      const chord = getChordAtBeat(extendHarmony, barStart);
+      if (chord) {
+        outViola.push({ pitch: 55 + getChordTone(chord.symbol, 1), duration: 0.5, offset: barStart + 1, rest: false });
+      }
+    }
+    outViola.sort((a, b) => (a.offset ?? 0) - (b.offset ?? 0));
+  }
+
+  const finalVn1 = applyBowability(vn1Notes, 55, 88);
+  const finalVn2 = applyBowability(vn2Notes, 48, 84);
+  const finalViola = applyBowability(outViola, 48, 79);
+  const finalCello = applyBowability(celloNotes, 36, 72);
+
+  const metrics = computeQuartetMetrics(
+    finalVn1, finalVn2, finalViola, finalCello, totalBars,
+    { violaRoleByBar, celloRoleByBar, violaMotifBars, celloMotifBars, textureReductionCount }
+  );
+
   const diagnostics: QuartetDiagnosticsOutput = {
     textureRotationCount: textureRotations,
     motifMigrationCount: motifMigrations,
@@ -680,13 +746,33 @@ export function generateQuartet(input: QuartetGenerationInput): QuartetGeneratio
     motifTransformCountPer16,
     densityViolations,
     violaMotifBars,
+    celloMotifBars,
+    violaRoleByBar,
+    celloRoleByBar,
+    activeDurationByInstrument: [
+      metrics.vn1.activeDuration, metrics.vn2.activeDuration, metrics.viola.activeDuration, metrics.cello.activeDuration,
+    ],
+    attackDensityByInstrument: [
+      metrics.vn1.attackDensity, metrics.vn2.attackDensity, metrics.viola.attackDensity, metrics.cello.attackDensity,
+    ],
+    restRatioByInstrument: [
+      metrics.vn1.restRatio, metrics.vn2.restRatio, metrics.viola.restRatio, metrics.cello.restRatio,
+    ],
+    roleEntropyByInstrument: [
+      metrics.vn1.roleEntropy, metrics.vn2.roleEntropy, metrics.viola.roleEntropy, metrics.cello.roleEntropy,
+    ],
+    motifParticipationByInstrument: [
+      metrics.vn1.motifParticipation, metrics.vn2.motifParticipation, metrics.viola.motifParticipation, metrics.cello.motifParticipation,
+    ],
+    simultaneousMotionRatio: metrics.simultaneousMotionRatio,
+    exposedDuoTrioBars: metrics.exposedDuoTrioBars,
   };
 
   return {
-    vn1: applyBowability(vn1Notes, 55, 88),
-    vn2: applyBowability(vn2Notes, 48, 84),
+    vn1: finalVn1,
+    vn2: finalVn2,
     viola: applyBowability(outViola, 48, 79),
-    cello: applyBowability(celloNotes, 36, 72),
+    cello: finalCello,
     textureRotations,
     motifMigrations,
     diagnostics,
