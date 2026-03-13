@@ -13,6 +13,10 @@ contextBridge.exposeInMainWorld('electronAPI', {
     ipcRenderer.invoke('fs:exportMusicXML', exportPath, filename, content),
   exportMusicXMLWithDialog: (defaultFilename: string, content: string) =>
     ipcRenderer.invoke('fs:exportMusicXMLWithDialog', defaultFilename, content),
+  exportDiagnosticsJSON: (exportPath: string, baseFilename: string, content: string) =>
+    ipcRenderer.invoke('fs:exportDiagnosticsJSON', exportPath, baseFilename, content),
+  exportDiagnosticsJSONWithDialog: (defaultBaseFilename: string, content: string) =>
+    ipcRenderer.invoke('fs:exportDiagnosticsJSONWithDialog', defaultBaseFilename, content),
   savePreset: (name: string, content: string) =>
     ipcRenderer.invoke('fs:savePreset', name, content),
   loadPreset: (name: string) => ipcRenderer.invoke('fs:loadPreset', name),

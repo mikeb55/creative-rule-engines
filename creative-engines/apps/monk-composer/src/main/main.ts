@@ -185,6 +185,40 @@ ipcMain.handle('fs:exportMusicXML', async (_, exportPath: string, filename: stri
 });
 
 /** Export via Save As dialog - more reliable; main process owns the file picker. */
+ipcMain.handle('fs:exportDiagnosticsJSON', async (_, exportPath: string, baseFilename: string, content: string): Promise<{ success: boolean; path: string; error?: string }> => {
+  const filename = baseFilename.endsWith('.json') ? baseFilename : `${baseFilename.replace(/\.musicxml$/i, '')}_diagnostics.json`;
+  const fullPath = path.join(exportPath, filename);
+  try {
+    ensureDir(exportPath);
+    fs.writeFileSync(fullPath, content, 'utf-8');
+    return { success: true, path: fullPath };
+  } catch (err) {
+    return { success: false, path: '', error: err instanceof Error ? err.message : 'Write failed' };
+  }
+});
+
+ipcMain.handle('fs:exportDiagnosticsJSONWithDialog', async (_, defaultBaseFilename: string, content: string): Promise<{ success: boolean; path: string; error?: string }> => {
+  const base = defaultBaseFilename.replace(/\.musicxml$/i, '').trim() || 'monk_composition';
+  const filename = `${base}_diagnostics.json`;
+  const win = mainWindow ?? BrowserWindow.getAllWindows()[0] ?? null;
+  const result = await dialog.showSaveDialog(win, {
+    title: 'Save Diagnostics JSON',
+    defaultPath: path.join(getDefaultExportPath(), filename),
+    filters: [{ name: 'JSON', extensions: ['json'] }],
+  });
+  if (result.canceled || !result.filePath) {
+    return { success: false, path: '' };
+  }
+  const filePath = result.filePath.endsWith('.json') ? result.filePath : `${result.filePath}.json`;
+  try {
+    ensureDir(path.dirname(filePath));
+    fs.writeFileSync(filePath, content, 'utf-8');
+    return { success: true, path: filePath };
+  } catch (err) {
+    return { success: false, path: '', error: err instanceof Error ? err.message : 'Write failed' };
+  }
+});
+
 ipcMain.handle('fs:exportMusicXMLWithDialog', async (_, defaultFilename: string, content: string): Promise<{ success: boolean; path: string; error?: string }> => {
   const baseName = defaultFilename.endsWith('.musicxml') ? defaultFilename : `${defaultFilename}.musicxml`;
   const win = mainWindow ?? BrowserWindow.getAllWindows()[0] ?? null;

@@ -9,6 +9,8 @@ export interface FileSystemAPI {
   openPath: (dirPath: string) => Promise<string>;
   exportMusicXML: (exportPath: string, filename: string, content: string) => Promise<{ success: boolean; path: string; error?: string }>;
   exportMusicXMLWithDialog: (defaultFilename: string, content: string) => Promise<{ success: boolean; path: string; error?: string }>;
+  exportDiagnosticsJSON: (exportPath: string, baseFilename: string, content: string) => Promise<{ success: boolean; path: string; error?: string }>;
+  exportDiagnosticsJSONWithDialog: (defaultBaseFilename: string, content: string) => Promise<{ success: boolean; path: string; error?: string }>;
   savePreset: (name: string, content: string) => Promise<boolean>;
   loadPreset: (name: string) => Promise<string>;
   listPresets: () => Promise<string[]>;

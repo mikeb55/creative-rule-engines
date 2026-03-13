@@ -1,3 +1,4 @@
+import { useState } from 'react';
 import type { GCEScores, Warnings, Composition, OutputTarget } from '../logic/types';
 
 interface AuditPanelProps {
@@ -6,6 +7,16 @@ interface AuditPanelProps {
   revisionCount: number;
   composition?: Composition | null;
   instrumentTarget?: OutputTarget;
+}
+
+function DebugValue({ label, value }: { label: string; value: unknown }) {
+  const str = value === undefined ? '—' : JSON.stringify(value);
+  return (
+    <div style={{ marginBottom: 4, fontSize: '0.7rem' }}>
+      <span className="muted" style={{ marginRight: 6 }}>{label}:</span>
+      <code style={{ wordBreak: 'break-all', fontFamily: 'monospace' }}>{str}</code>
+    </div>
+  );
 }
 
 function ScoreRow({ label, value }: { label: string; value: number }) {
@@ -27,6 +38,7 @@ function ScoreRow({ label, value }: { label: string; value: number }) {
 }
 
 export function AuditPanel({ scores, warnings, revisionCount, composition, instrumentTarget }: AuditPanelProps) {
+  const [debugOpen, setDebugOpen] = useState(false);
   const isQuartet = instrumentTarget === 'string_quartet';
   const diag = composition?.quartetDiagnostics;
 
@@ -107,6 +119,81 @@ export function AuditPanel({ scores, warnings, revisionCount, composition, instr
           )}
         </div>
       )}
+      <div style={{ marginTop: 16, borderTop: '1px solid var(--panel-border, #333)' }}>
+        <button
+          type="button"
+          onClick={() => setDebugOpen(o => !o)}
+          style={{
+            background: 'none',
+            border: 'none',
+            color: 'var(--muted, #888)',
+            cursor: 'pointer',
+            fontSize: '0.85rem',
+            padding: '8px 0',
+            display: 'flex',
+            alignItems: 'center',
+            gap: 6,
+          }}
+        >
+          {debugOpen ? '▼' : '▶'} Debug Diagnostics
+        </button>
+        {debugOpen && (
+          <div
+            style={{
+              marginTop: 8,
+              padding: 10,
+              background: 'rgba(0,0,0,0.2)',
+              borderRadius: 4,
+              fontFamily: 'monospace',
+              fontSize: '0.7rem',
+              maxHeight: 320,
+              overflow: 'auto',
+            }}
+          >
+            {scores && (
+              <>
+                <strong style={{ display: 'block', marginBottom: 6 }}>GCEScores</strong>
+                <pre style={{ margin: 0, whiteSpace: 'pre-wrap', wordBreak: 'break-word' }}>
+                  {JSON.stringify(scores, null, 2)}
+                </pre>
+              </>
+            )}
+            {warnings && (
+              <>
+                <strong style={{ display: 'block', margin: '10px 0 6px' }}>Warnings</strong>
+                <pre style={{ margin: 0, whiteSpace: 'pre-wrap', wordBreak: 'break-word' }}>
+                  {JSON.stringify(warnings, null, 2)}
+                </pre>
+              </>
+            )}
+            {isQuartet && diag && (
+              <>
+                <strong style={{ display: 'block', margin: '10px 0 6px' }}>Quartet diagnostics</strong>
+                <DebugValue label="violaVln2Ratio" value={diag.violaVln2Ratio} />
+                <DebugValue label="celloVln1Ratio" value={diag.celloVln1Ratio} />
+                <DebugValue label="activeDurationByInstrument" value={diag.activeDurationByInstrument} />
+                <DebugValue label="attackDensityByInstrument" value={diag.attackDensityByInstrument} />
+                <DebugValue label="restRatioByInstrument" value={diag.restRatioByInstrument} />
+                <DebugValue label="roleEntropyByInstrument" value={diag.roleEntropyByInstrument} />
+                <DebugValue label="motifParticipationByInstrument" value={diag.motifParticipationByInstrument} />
+                <DebugValue label="simultaneousMotionRatio" value={diag.simultaneousMotionRatio} />
+                <DebugValue label="exposedDuoTrioBars" value={diag.exposedDuoTrioBars} />
+                <DebugValue label="textureRotationCount" value={diag.textureRotationCount} />
+                <DebugValue label="motifMigrationCount" value={diag.motifMigrationCount} />
+                <DebugValue label="repeatedBarWarnings" value={diag.repeatedBarWarnings} />
+                <DebugValue label="densityViolations" value={diag.densityViolations} />
+                <DebugValue label="counterpointEventCount" value={diag.counterpointEventCount} />
+                <pre style={{ margin: '8px 0 0', whiteSpace: 'pre-wrap', wordBreak: 'break-word' }}>
+                  {JSON.stringify(diag, null, 2)}
+                </pre>
+              </>
+            )}
+            {(!scores && !warnings && (!isQuartet || !diag)) && (
+              <p className="muted">Generate a draft to see diagnostic data.</p>
+            )}
+          </div>
+        )}
+      </div>
     </div>
   );
 }

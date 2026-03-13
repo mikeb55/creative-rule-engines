@@ -2,6 +2,13 @@
 
 ## [Unreleased]
 
+### 2025-03-11 — Debug Diagnostics Panel and Export
+
+- **Debug diagnostics panel added** — Collapsible "Debug Diagnostics" section in the Audit panel shows raw GCEScores, warnings, and quartetDiagnostics (when target is string quartet).
+- **Raw quartet metrics exposed** — violaVln2Ratio, celloVln1Ratio, activeDurationByInstrument, attackDensityByInstrument, restRatioByInstrument, roleEntropyByInstrument, motifParticipationByInstrument, simultaneousMotionRatio, exposedDuoTrioBars, textureRotationCount, motifMigrationCount, repeatedBarWarnings, densityViolations, counterpointEventCount.
+- **Diagnostics JSON export added** — "Export Diagnostics JSON" button in Export panel writes a JSON file (e.g. `my_piece_diagnostics.json`) next to the MusicXML export, containing title, timestamp, target, engine selections, scores, warnings, quartet diagnostics, and revision count.
+- **Optional dev logging added** — In development mode only, console logs scores, warnings, and quartetDiagnostics after Generate Draft and Raise GCE.
+
 ### 2025-03-11 — Quartet Texture Architecture
 
 - **Added texture architecture system** — Texture plan built before voice generation. Piece divided into sections of 2–4 measures; each section assigned FULL, TRIO, DUO, SOLO_PLUS_PUNCTUATION, or PEDAL_TEXTURE. Voices generated according to plan; inactive instruments rest, sustain, or produce short punctuation.

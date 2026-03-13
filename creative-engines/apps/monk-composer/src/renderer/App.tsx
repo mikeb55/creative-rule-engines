@@ -71,6 +71,8 @@ export function App() {
     }
   }, []);
 
+  const DEV = (typeof import.meta !== 'undefined' && (import.meta as { env?: { DEV?: boolean } }).env?.DEV) ?? false;
+
   const handleGenerateDraft = useCallback(() => {
     if (!barryEnabled && !monkEnabled) return;
     setIsGenerating(true);
@@ -81,9 +83,12 @@ export function App() {
       setScores(s);
       setWarnings(w);
       setRevisionCount(0);
+      if (DEV) {
+        console.debug('[Monk Composer] Generate Draft →', { scores: s, warnings: w, quartetDiagnostics: comp?.quartetDiagnostics });
+      }
       setIsGenerating(false);
     }, 100);
-  }, [engine, target, barry, monk, global, barryEnabled, monkEnabled]);
+  }, [engine, target, barry, monk, global, barryEnabled, monkEnabled, DEV]);
 
   const handleRaiseGCE = useCallback(() => {
     if (!composition) return;
@@ -94,11 +99,15 @@ export function App() {
       });
       setComposition(result.composition);
       setScores(result.scores);
-      setWarnings(evaluateGCE(result.composition, target).warnings);
+      const w = evaluateGCE(result.composition, target).warnings;
+      setWarnings(w);
       setRevisionCount(result.revisionCount);
+      if (DEV) {
+        console.debug('[Monk Composer] Raise GCE →', { scores: result.scores, warnings: w, quartetDiagnostics: result.composition?.quartetDiagnostics });
+      }
       setIsGenerating(false);
     }, 100);
-  }, [composition, target, global.gceThreshold, barry, monk, global, engine]);
+  }, [composition, target, global.gceThreshold, barry, monk, global, engine, DEV]);
 
   const handleRegenerateWeakest = useCallback(() => {
     handleRaiseGCE();
@@ -189,6 +198,22 @@ export function App() {
 
   const canExport = composition != null;
 
+  const getDiagnosticsPayload = useCallback(() => {
+    if (!composition) return null;
+    const baseName = exportFilename.replace(/[<>:"/\\|?*]/g, '_').trim() || 'monk_composition';
+    return {
+      title: `Monk Composer - ${target}`,
+      filename: baseName,
+      timestamp: new Date().toISOString(),
+      target,
+      engineSelections: { barry: barryEnabled, monk: monkEnabled },
+      scores,
+      warnings,
+      quartetDiagnostics: composition?.quartetDiagnostics ?? undefined,
+      revisionCount,
+    };
+  }, [composition, exportFilename, target, barryEnabled, monkEnabled, scores, warnings, revisionCount]);
+
   return (
     <div className="app">
       <header className="app-header">
@@ -261,6 +286,7 @@ export function App() {
         exportedPath={exportedPath}
         canExport={canExport}
         electronAPIAvailable={electronAPIAvailable}
+        getDiagnosticsPayload={getDiagnosticsPayload}
       />
 
       <PreviewPanel

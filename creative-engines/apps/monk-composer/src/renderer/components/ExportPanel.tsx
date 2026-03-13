@@ -6,6 +6,18 @@ function sanitizeFilename(name: string): string {
   return name.replace(INVALID_CHARS, '_').trim() || 'monk_composition';
 }
 
+export interface DiagnosticsPayload {
+  title?: string;
+  filename?: string;
+  timestamp: string;
+  target: string;
+  engineSelections: { barry: boolean; monk: boolean };
+  scores: unknown;
+  warnings: unknown;
+  quartetDiagnostics?: unknown;
+  revisionCount?: number;
+}
+
 interface ExportPanelProps {
   filename: string;
   exportPath: string;
@@ -15,6 +27,7 @@ interface ExportPanelProps {
   exportedPath: string | null;
   canExport: boolean;
   electronAPIAvailable?: boolean | null;
+  getDiagnosticsPayload?: () => DiagnosticsPayload | null;
 }
 
 export function ExportPanel({
@@ -26,9 +39,11 @@ export function ExportPanel({
   exportedPath,
   canExport,
   electronAPIAvailable = null,
+  getDiagnosticsPayload,
 }: ExportPanelProps) {
   const [filenameError, setFilenameError] = useState<string | null>(null);
   const [isExporting, setIsExporting] = useState(false);
+  const [isExportingDiagnostics, setIsExportingDiagnostics] = useState(false);
 
   useEffect(() => {
     const api = typeof window !== 'undefined' ? (window as unknown as { electronAPI?: { getDefaultExportPath?: () => Promise<string> } }).electronAPI : undefined;
@@ -39,7 +54,16 @@ export function ExportPanel({
     }
   }, [exportPath, onExportPathChange]);
 
-  const electronAPI = typeof window !== 'undefined' ? (window as unknown as { electronAPI?: { getDefaultExportPath?: () => Promise<string>; showOpenDirectoryDialog?: () => Promise<{ canceled: boolean; path: string }>; exportMusicXMLWithDialog?: (a: string, b: string) => Promise<{ success: boolean; path: string }>; openPath?: (p: string) => Promise<string> } }).electronAPI : undefined;
+  const electronAPI = typeof window !== 'undefined' ? (window as unknown as {
+    electronAPI?: {
+      getDefaultExportPath?: () => Promise<string>;
+      showOpenDirectoryDialog?: () => Promise<{ canceled: boolean; path: string }>;
+      exportMusicXMLWithDialog?: (a: string, b: string) => Promise<{ success: boolean; path: string }>;
+      exportDiagnosticsJSON?: (path: string, base: string, content: string) => Promise<{ success: boolean; path: string; error?: string }>;
+      exportDiagnosticsJSONWithDialog?: (base: string, content: string) => Promise<{ success: boolean; path: string; error?: string }>;
+      openPath?: (p: string) => Promise<string>;
+    };
+  }).electronAPI : undefined;
 
   const handleUseDefault = async () => {
     if (electronAPI?.getDefaultExportPath) {
@@ -114,6 +138,41 @@ export function ExportPanel({
     }
   };
 
+  const handleExportDiagnostics = async () => {
+    const payload = getDiagnosticsPayload?.();
+    if (!payload) {
+      setFilenameError('No composition to export diagnostics.');
+      return;
+    }
+    const content = JSON.stringify(payload, null, 2);
+    const baseName = sanitizeFilename(filename);
+    setFilenameError(null);
+    setIsExportingDiagnostics(true);
+    try {
+      const useDialog = !!electronAPI?.exportDiagnosticsJSONWithDialog;
+      let result: { success: boolean; path: string; error?: string };
+      if (useDialog) {
+        result = await electronAPI!.exportDiagnosticsJSONWithDialog!(baseName, content);
+      } else if (exportPath && electronAPI?.exportDiagnosticsJSON) {
+        result = await electronAPI.exportDiagnosticsJSON(exportPath, baseName, content);
+      } else {
+        setFilenameError('Run Monk Composer as desktop app for Export Diagnostics.');
+        return;
+      }
+      if (result.success && result.path && electronAPI?.openPath) {
+        const sep = result.path.includes('\\') ? '\\' : '/';
+        const dir = result.path.substring(0, result.path.lastIndexOf(sep));
+        await electronAPI.openPath(dir);
+      } else if (!result.success) {
+        setFilenameError(result.error || 'Export diagnostics failed.');
+      }
+    } catch (err) {
+      setFilenameError(err instanceof Error ? err.message : 'Export diagnostics failed.');
+    } finally {
+      setIsExportingDiagnostics(false);
+    }
+  };
+
   return (
     <div className="panel">
       <h3 className="panel-title">Export</h3>
@@ -165,6 +224,15 @@ export function ExportPanel({
         disabled={!canExport || isExporting}
       >
         {isExporting ? 'Exporting…' : 'Export MusicXML'}
+      </button>
+      <button
+        type="button"
+        onClick={handleExportDiagnostics}
+        disabled={!canExport || isExportingDiagnostics || !getDiagnosticsPayload}
+        className="secondary"
+        style={{ marginTop: 8 }}
+      >
+        {isExportingDiagnostics ? 'Exporting…' : 'Export Diagnostics JSON'}
       </button>
       {exportedPath && (
         <div className="export-confirmation">

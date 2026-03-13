@@ -465,13 +465,13 @@ export function generateQuartet(input: QuartetGenerationInput): QuartetGeneratio
           violaMotifBars++;
           motifTransformCount++;
           motifMigrations++;
-        } else if (violaRole === 'imitation' && barMelody.length > 0 && activeInstruments.has(2) && !counterpointType) {
+        } else if (violaRoleType === 'imitation' && barMelody.length > 0 && activeInstruments.has(2) && !counterpointType) {
           const ans = motifTransform(barMelody.slice(0, 2), 'transpose', -7);
           for (const n of ans) {
             violaNotes.push({ ...n, pitch: Math.min(79, Math.max(48, n.pitch)), offset: (n.offset ?? barStart) + 0.5 });
           }
           motifMigrations++;
-        } else if ((violaRole === 'suspension_tension' || reduceTexture) && activeInstruments.has(2)) {
+        } else if ((violaRoleType === 'suspension_tension' || reduceTexture) && activeInstruments.has(2)) {
           violaNotes.push({ pitch: 52 + getChordTone(chord.symbol, 1), duration: 4, offset: barStart, rest: false });
         } else if (activeInstruments.has(2)) {
           const v1 = 52 + getChordTone(chord.symbol, (bar % 2) + 1);
@@ -544,7 +544,7 @@ export function generateQuartet(input: QuartetGenerationInput): QuartetGeneratio
         vn1Notes.push({ pitch: 60 + getChordTone(chord.symbol, 0), duration: 4, offset: barStart, rest: false });
       }
       if (chord) {
-        if ((violaRole === 'motivic_fragment_carrier' || violaNeedsMotifHere) && bar % 4 === 0 && barMelody.length >= 2 && activeInstruments.has(2)) {
+        if ((violaRoleType === 'motivic_fragment_carrier' || violaNeedsMotifHere) && bar % 4 === 0 && barMelody.length >= 2 && activeInstruments.has(2)) {
           const frag = motifTransform(barMelody.slice(0, 2), MOTIF_TRANSFORMS[bar % MOTIF_TRANSFORMS.length], -5);
           for (const n of frag) {
             violaNotes.push({ ...n, pitch: Math.min(79, Math.max(48, n.pitch - 5)), offset: (n.offset ?? barStart) + 0.25 });
@@ -579,7 +579,7 @@ export function generateQuartet(input: QuartetGenerationInput): QuartetGeneratio
         }
         if (chord) {
           if (activeInstruments.has(2)) {
-            if (violaRole === 'registral_bridge') {
+            if (violaRoleType === 'registral_bridge') {
               violaNotes.push({ pitch: 48 + getChordTone(chord.symbol, 0), duration: 1, offset: barStart, rest: false });
               violaNotes.push({ pitch: 60 + getChordTone(chord.symbol, 1), duration: 3, offset: barStart + 1, rest: false });
             } else {

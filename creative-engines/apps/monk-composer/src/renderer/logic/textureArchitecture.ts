@@ -55,7 +55,6 @@ export function buildTexturePlan(totalBars: number, seed: number): TextureSectio
     const endBar = bar + sectionBars - 1;
 
     const blocksOf16 = Math.floor(bar / 16);
-    const inBlock = bar % 16;
     const fullAllowed = fullCount.count < Math.ceil((blocksOf16 + 1) * 16 * 0.4);
     const needDuo = duoCount.count < blocksOf16 + 1;
     const needTrio = trioCount.count < blocksOf16 + 1;

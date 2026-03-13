@@ -52,6 +52,13 @@ npm run electron:build
 
 The postbuild script creates the desktop shortcut automatically.
 
+## Debugging and Diagnostics
+
+- **GCE scores** appear in the **Audit** panel after generating a draft or running Raise GCE.
+- **Quartet metrics** (active duration, attack density, rest ratio, motif participation, etc.) appear in the Audit panel when the target is string quartet.
+- **Debug Diagnostics** — Expand the collapsible "Debug Diagnostics" section at the bottom of the Audit panel to inspect raw GCE scores, warnings, and quartet diagnostics.
+- **Export Diagnostics JSON** — Click "Export Diagnostics JSON" in the Export panel to save a JSON file (e.g. `my_piece_diagnostics.json`) alongside your MusicXML export. The file includes title, timestamp, target, engine selections, scores, warnings, quartet diagnostics, and revision count.
+
 ## Requirements
 
 - Windows 10 or later
