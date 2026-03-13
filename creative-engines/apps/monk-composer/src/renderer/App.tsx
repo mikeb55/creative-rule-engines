@@ -47,17 +47,27 @@ export function App() {
   const [exportPath, setExportPath] = useState('');
   const [isGenerating, setIsGenerating] = useState(false);
   const [engines, setEngines] = useState<string[]>([]);
+  const [electronAPIAvailable, setElectronAPIAvailable] = useState<boolean | null>(null);
 
   const engine = deriveEngine(barryEnabled, monkEnabled);
 
   useEffect(() => {
-    if (window.electronAPI) {
-      window.electronAPI.listEngines().then(setEngines);
-      window.electronAPI.getDefaultExportPath?.()
-        .then(p => p && setExportPath(p))
-        .catch(() => {});
-    } else {
+    const api = (typeof window !== 'undefined' && window.electronAPI) ? window.electronAPI : null;
+    if (!api) {
+      setElectronAPIAvailable(false);
       setEngines(['barry_harris_engine', 'monk_engine']);
+      return;
+    }
+    const init = () => {
+      setElectronAPIAvailable(true);
+      api.listEngines?.().then(setEngines).catch(() => setEngines(['barry_harris_engine', 'monk_engine']));
+      api.getDefaultExportPath?.().then(p => p && setExportPath(p)).catch(() => {});
+    };
+    const pingPromise = (api as { ping?: () => Promise<boolean> }).ping?.();
+    if (pingPromise) {
+      pingPromise.then(init).catch(() => setElectronAPIAvailable(false));
+    } else {
+      init();
     }
   }, []);
 
@@ -96,21 +106,17 @@ export function App() {
 
   const handleExport = useCallback(async (filename: string, path: string) => {
     if (!composition) return { success: false, path: '' };
+    const threshold = global.gceThreshold;
     let compToExport = composition;
-    let currentScores = scores;
-    if (target === 'string_quartet' && (currentScores == null || currentScores.overall < 9)) {
-      const revResult = runRevisionLoop(composition, target, global.gceThreshold, {
+    if (target === 'string_quartet' && (scores == null || scores.overall < threshold)) {
+      const revResult = runRevisionLoop(composition, target, threshold, {
         target, barry, monk, global, engine,
       });
       compToExport = revResult.composition;
-      currentScores = revResult.scores;
       setComposition(compToExport);
-      setScores(currentScores);
+      setScores(revResult.scores);
       setWarnings(evaluateGCE(compToExport, target).warnings);
       setRevisionCount(revResult.revisionCount);
-      if (currentScores.overall < 9) return { success: false, path: '' };
-    } else if (currentScores == null || currentScores.overall < 9) {
-      return { success: false, path: '' };
     }
     const xml = compositionToMusicXML(compToExport, `Monk Composer - ${target}`, {
       keyCenter: global.keyCenter,
@@ -118,11 +124,16 @@ export function App() {
       target,
     });
     if (!validateMusicXML(xml)) return { success: false, path: '' };
-    if (window.electronAPI?.exportMusicXML) {
-      const result = await window.electronAPI.exportMusicXML(path, filename, xml);
-      if (result.success) {
-        setExportedPath(result.path);
-      }
+    const defaultName = filename.trim() || 'monk_composition';
+    const sanitized = defaultName.replace(/[<>:"/\\|?*]/g, '_').trim() || 'monk_composition';
+    if (window.electronAPI?.exportMusicXMLWithDialog) {
+      const result = await window.electronAPI.exportMusicXMLWithDialog(sanitized, xml);
+      if (result.success) setExportedPath(result.path);
+      return result;
+    }
+    if (window.electronAPI?.exportMusicXML && path) {
+      const result = await window.electronAPI.exportMusicXML(path, sanitized, xml);
+      if (result.success) setExportedPath(result.path);
       return result;
     }
     return { success: false, path: '' };
@@ -176,7 +187,7 @@ export function App() {
     ? `Generated ${composition.phrases?.length || 0} phrase(s) using ${engineStack} for ${target}.`
     : '';
 
-  const canExport = composition != null && (target !== 'string_quartet' ? (scores != null && scores.overall >= 9) : true);
+  const canExport = composition != null;
 
   return (
     <div className="app">
@@ -249,6 +260,7 @@ export function App() {
         onExport={handleExport}
         exportedPath={exportedPath}
         canExport={canExport}
+        electronAPIAvailable={electronAPIAvailable}
       />
 
       <PreviewPanel

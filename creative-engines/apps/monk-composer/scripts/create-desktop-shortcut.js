@@ -20,6 +20,9 @@ function findExecutable() {
   const portable = path.join(releaseDir, 'Monk Composer.exe');
   if (fs.existsSync(portable)) return portable;
 
+  const portableVersioned = path.join(releaseDir, 'Monk Composer 1.0.0.exe');
+  if (fs.existsSync(portableVersioned)) return portableVersioned;
+
   const winUnpacked = path.join(releaseDir, 'win-unpacked', 'Monk Composer.exe');
   if (fs.existsSync(winUnpacked)) return winUnpacked;
 
@@ -31,6 +34,8 @@ function findExecutable() {
     const exe = path.join(releaseDir, d, 'Monk Composer.exe');
     if (fs.existsSync(exe)) return exe;
   }
+  const portableMatches = fs.readdirSync(releaseDir).filter(f => f.startsWith('Monk Composer ') && f.endsWith('.exe'));
+  if (portableMatches.length > 0) return path.join(releaseDir, portableMatches[0]);
   return null;
 }
 

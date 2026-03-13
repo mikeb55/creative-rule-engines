@@ -14,6 +14,7 @@ interface ExportPanelProps {
   onExport: (filename: string, exportPath: string) => Promise<{ success: boolean; path: string }>;
   exportedPath: string | null;
   canExport: boolean;
+  electronAPIAvailable?: boolean | null;
 }
 
 export function ExportPanel({
@@ -24,36 +25,42 @@ export function ExportPanel({
   onExport,
   exportedPath,
   canExport,
+  electronAPIAvailable = null,
 }: ExportPanelProps) {
   const [filenameError, setFilenameError] = useState<string | null>(null);
   const [isExporting, setIsExporting] = useState(false);
 
   useEffect(() => {
-    if (!exportPath && window.electronAPI?.getDefaultExportPath) {
-      window.electronAPI.getDefaultExportPath()
+    const api = typeof window !== 'undefined' ? (window as unknown as { electronAPI?: { getDefaultExportPath?: () => Promise<string> } }).electronAPI : undefined;
+    if (!exportPath && api?.getDefaultExportPath) {
+      api.getDefaultExportPath()
         .then(p => p && onExportPathChange(p))
         .catch(() => {});
     }
   }, [exportPath, onExportPathChange]);
 
+  const electronAPI = typeof window !== 'undefined' ? (window as unknown as { electronAPI?: { getDefaultExportPath?: () => Promise<string>; showOpenDirectoryDialog?: () => Promise<{ canceled: boolean; path: string }>; exportMusicXMLWithDialog?: (a: string, b: string) => Promise<{ success: boolean; path: string }>; openPath?: (p: string) => Promise<string> } }).electronAPI : undefined;
+
   const handleUseDefault = async () => {
-    if (window.electronAPI?.getDefaultExportPath) {
+    if (electronAPI?.getDefaultExportPath) {
       try {
-        const p = await window.electronAPI.getDefaultExportPath();
+        const p = await electronAPI.getDefaultExportPath();
         if (p) onExportPathChange(p);
       } catch {
-        setFilenameError('Could not get default folder.');
+        setFilenameError('Could not get default folder. Run as desktop app.');
       }
+    } else {
+      setFilenameError('Run Monk Composer as desktop app for export.');
     }
   };
 
   const handleBrowse = async () => {
-    if (!window.electronAPI?.showOpenDirectoryDialog) {
-      setFilenameError('File dialogs not available. Use default folder.');
+    if (!electronAPI?.showOpenDirectoryDialog) {
+      setFilenameError('Run Monk Composer as desktop app for Browse.');
       return;
     }
     try {
-      const result = await window.electronAPI.showOpenDirectoryDialog();
+      const result = await electronAPI.showOpenDirectoryDialog();
       if (!result.canceled && result.path) {
         onExportPathChange(result.path);
         setFilenameError(null);
@@ -70,28 +77,38 @@ export function ExportPanel({
       return;
     }
     setFilenameError(null);
+
+    const useSaveDialog = !!electronAPI?.exportMusicXMLWithDialog;
     let pathToUse = exportPath;
-    if (!pathToUse && window.electronAPI?.getDefaultExportPath) {
-      try {
-        pathToUse = await window.electronAPI.getDefaultExportPath();
-        if (pathToUse) onExportPathChange(pathToUse);
-      } catch {
-        setFilenameError('Please select an export folder.');
+    if (!useSaveDialog) {
+      if (!pathToUse && electronAPI?.getDefaultExportPath) {
+        try {
+          pathToUse = await electronAPI.getDefaultExportPath();
+          if (pathToUse) onExportPathChange(pathToUse);
+        } catch {
+          setFilenameError('Please select an export folder.');
+          return;
+        }
+      }
+      if (!pathToUse) {
+        setFilenameError('Please click Use Default or Browse to select an export folder.');
         return;
       }
     }
-    if (!pathToUse) {
-      setFilenameError('Please select an export folder or click Use Default.');
-      return;
-    }
+
     setIsExporting(true);
+    setFilenameError(null);
     try {
-      const result = await onExport(sanitized, pathToUse);
-      if (result.success && window.electronAPI?.openPath) {
+      const result = await onExport(sanitized, pathToUse || '');
+      if (result.success && result.path && electronAPI?.openPath) {
         const sep = result.path.includes('\\') ? '\\' : '/';
         const dir = result.path.substring(0, result.path.lastIndexOf(sep));
-        await window.electronAPI.openPath(dir);
+        await electronAPI.openPath(dir);
+      } else if (!result.success) {
+        setFilenameError((result as { error?: string }).error || 'Export failed. Try a different folder or filename.');
       }
+    } catch (err) {
+      setFilenameError(err instanceof Error ? err.message : 'Export failed.');
     } finally {
       setIsExporting(false);
     }
@@ -100,6 +117,11 @@ export function ExportPanel({
   return (
     <div className="panel">
       <h3 className="panel-title">Export</h3>
+      {electronAPIAvailable === false && (
+        <p className="export-warning">
+          Export and Browse require the desktop app. Run via <code>npm run electron:dev</code> or the Monk Composer shortcut, not in a browser.
+        </p>
+      )}
       <div className="control-group">
         <label className="input-label">File Name</label>
         <div className="filename-input-row">
@@ -125,7 +147,7 @@ export function ExportPanel({
             readOnly
             className="path-input"
             title={exportPath}
-            placeholder="Documents/Monk Composer Exports"
+            placeholder={electronAPI?.exportMusicXMLWithDialog ? 'Choose location when you click Export' : 'Documents/Monk Composer Exports'}
           />
           <button type="button" onClick={handleUseDefault} className="secondary">
             Use Default

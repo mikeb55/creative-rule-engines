@@ -153,6 +153,59 @@ function celloRoleForBar(bar: number, floor: TextureFloor, seed: number): CelloR
   return roles[idx];
 }
 
+/** Jazz walking-bass figure: quarter-note motion through chord tones + chromatic approach. */
+function walkingBassFigure(
+  barStart: number,
+  root: number,
+  fifth: number,
+  chordTones: number[],
+  seed: number,
+  nextRoot: number | null
+): (Note & { offset: number })[] {
+  const baseOctave = 36;
+  const r = baseOctave + (root % 12);
+  const f = baseOctave + (fifth % 12);
+  const tones = chordTones.map(t => baseOctave + (t % 12)).filter(p => p >= 36 && p <= 60);
+  const unique = [r, ...tones.filter(p => p !== r)];
+  const u = [r, f, unique[1] ?? r + 4, unique[2] ?? r + 7];
+  const notes: (Note & { offset: number })[] = [];
+  const pattern = seed % 5;
+  if (pattern === 0) {
+    notes.push({ pitch: r, duration: 1, offset: barStart, rest: false });
+    notes.push({ pitch: f, duration: 1, offset: barStart + 1, rest: false });
+    notes.push({ pitch: r, duration: 1, offset: barStart + 2, rest: false });
+    notes.push({ pitch: nextRoot != null ? baseOctave + ((nextRoot - 1 + 12) % 12) : u[(seed + 2) % u.length], duration: 1, offset: barStart + 3, rest: false });
+  } else if (pattern === 1) {
+    notes.push({ pitch: r, duration: 1, offset: barStart, rest: false });
+    notes.push({ pitch: u[1], duration: 1, offset: barStart + 1, rest: false });
+    notes.push({ pitch: u[2], duration: 1, offset: barStart + 2, rest: false });
+    notes.push({ pitch: u[3], duration: 1, offset: barStart + 3, rest: false });
+  } else if (pattern === 2) {
+    notes.push({ pitch: r, duration: 1, offset: barStart, rest: false });
+    notes.push({ pitch: f, duration: 1, offset: barStart + 1, rest: false });
+    notes.push({ pitch: Math.min(60, f + 1), duration: 1, offset: barStart + 2, rest: false });
+    notes.push({ pitch: nextRoot != null ? baseOctave + (nextRoot % 12) : r, duration: 1, offset: barStart + 3, rest: false });
+  } else if (pattern === 3) {
+    notes.push({ pitch: r, duration: 1, offset: barStart, rest: false });
+    notes.push({ pitch: Math.min(60, r + 4), duration: 1, offset: barStart + 1, rest: false });
+    notes.push({ pitch: f, duration: 1, offset: barStart + 2, rest: false });
+    notes.push({ pitch: Math.min(60, r + 7), duration: 1, offset: barStart + 3, rest: false });
+  } else {
+    notes.push({ pitch: r, duration: 1, offset: barStart, rest: false });
+    notes.push({ pitch: Math.max(36, r - 1), duration: 1, offset: barStart + 1, rest: false });
+    notes.push({ pitch: r, duration: 1, offset: barStart + 2, rest: false });
+    notes.push({ pitch: f, duration: 1, offset: barStart + 3, rest: false });
+  }
+  return notes;
+}
+
+function getNextChordRoot(harmony: Chord[], barStart: number): number | null {
+  for (const c of harmony) {
+    if (c.offset > barStart + 3.5) return chordRoot(c.symbol);
+  }
+  return null;
+}
+
 export function generateQuartet(input: QuartetGenerationInput): QuartetGenerationOutput {
   const { motif, harmony, bars, rotationOffset = 0, revisionSeed = 0 } = input;
   const melody = ensureOffset(motif.filter(n => !n.rest).map(n => ({ ...n, duration: Math.max(0.25, n.duration) })));
@@ -207,6 +260,8 @@ export function generateQuartet(input: QuartetGenerationInput): QuartetGeneratio
 
     const cRoot = chord ? 36 + root : 36;
     const cFifth = chord ? 36 + fifth : 43;
+    const chordTonesForBass = chord ? [root, (root + 4) % 12, (root + 7) % 12, (root + 10) % 12] : [0, 4, 7, 10];
+    const nextRoot = chord ? getNextChordRoot(extendHarmony, barStart) : null;
 
     if (floor === 'A') {
       for (const n of barMelody) {
@@ -223,21 +278,17 @@ export function generateQuartet(input: QuartetGenerationInput): QuartetGeneratio
           violaNotes.push({ pitch: Math.min(79, Math.max(48, 55 + getChordTone(chord.symbol, 2))), duration: 1, offset: barStart + 2, rest: false });
         }
         if (celloRole === 'pedal') {
-          celloNotes.push({ pitch: cRoot, duration: 4, offset: barStart, rest: false });
+          celloNotes.push({ pitch: cRoot, duration: 2, offset: barStart, rest: false });
+          celloNotes.push({ pitch: cFifth, duration: 2, offset: barStart + 2, rest: false });
         } else if (celloRole === 'motivic_fragment' && barMelody.length > 0) {
           const frag = motifTransform(barMelody.slice(0, 2), 'transpose', -12);
           for (const n of frag) {
             celloNotes.push({ ...n, pitch: Math.min(72, Math.max(36, n.pitch)), offset: (n.offset ?? barStart) });
           }
           if (frag.length >= 2) motifMigrations++;
-        } else if (celloRole === 'counterline' || celloRole === 'independent_support') {
-          celloNotes.push({ pitch: cRoot, duration: 1, offset: barStart, rest: false });
-          celloNotes.push({ pitch: seed % 3 === 0 ? cFifth : cRoot, duration: 1, offset: barStart + 1, rest: false });
-          celloNotes.push({ pitch: cRoot, duration: 1, offset: barStart + 2, rest: false });
-          celloNotes.push({ pitch: seed % 4 === 0 ? cFifth : cRoot, duration: 1, offset: barStart + 3, rest: false });
         } else {
-          celloNotes.push({ pitch: cRoot, duration: 2, offset: barStart, rest: false });
-          celloNotes.push({ pitch: cFifth, duration: 2, offset: barStart + 2, rest: false });
+          const walk = walkingBassFigure(barStart, root, fifth, chordTonesForBass, seed + bar, nextRoot);
+          celloNotes.push(...walk);
         }
       }
     } else if (floor === 'B') {
@@ -276,11 +327,8 @@ export function generateQuartet(input: QuartetGenerationInput): QuartetGeneratio
           violaNotes.push({ pitch: Math.min(79, Math.max(48, v2)), duration: 1.5, offset: barStart + 1.5, rest: false });
         }
         if (celloRole === 'pedal') {
-          celloNotes.push({ pitch: cRoot, duration: 4, offset: barStart, rest: false });
-        } else if (bar % 3 === 2) {
           celloNotes.push({ pitch: cRoot, duration: 2, offset: barStart, rest: false });
-          celloNotes.push({ pitch: cFifth, duration: 1, offset: barStart + 2, rest: false });
-          celloNotes.push({ pitch: cRoot, duration: 1, offset: barStart + 3, rest: false });
+          celloNotes.push({ pitch: cFifth, duration: 2, offset: barStart + 2, rest: false });
         } else if (celloRole === 'motivic_fragment' && barMelody.length > 0 && bar % 4 === 1) {
           const frag = motifTransform(barMelody.slice(0, 2), 'invert');
           for (const n of frag) {
@@ -288,8 +336,8 @@ export function generateQuartet(input: QuartetGenerationInput): QuartetGeneratio
           }
           motifMigrations++;
         } else {
-          celloNotes.push({ pitch: cRoot, duration: 2, offset: barStart, rest: false });
-          celloNotes.push({ pitch: cFifth, duration: 2, offset: barStart + 2, rest: false });
+          const walk = walkingBassFigure(barStart, root, fifth, chordTonesForBass, seed + bar + 1, nextRoot);
+          celloNotes.push(...walk);
         }
       }
     } else if (floor === 'C') {
@@ -317,13 +365,12 @@ export function generateQuartet(input: QuartetGenerationInput): QuartetGeneratio
         }
         if (celloRole === 'registral_punctuation') {
           celloNotes.push({ pitch: cRoot, duration: 1, offset: barStart, rest: false });
+          celloNotes.push({ pitch: cRoot + 7, duration: 1, offset: barStart + 1, rest: false });
           celloNotes.push({ pitch: cRoot + 12, duration: 1, offset: barStart + 2, rest: false });
-          celloNotes.push({ pitch: cRoot, duration: 2, offset: barStart + 3, rest: false });
+          celloNotes.push({ pitch: cFifth, duration: 1, offset: barStart + 3, rest: false });
         } else {
-          celloNotes.push({ pitch: cRoot, duration: 1, offset: barStart, rest: false });
-          celloNotes.push({ pitch: seed % 2 === 0 ? cFifth : cRoot, duration: 1, offset: barStart + 1, rest: false });
-          celloNotes.push({ pitch: cRoot, duration: 1, offset: barStart + 2, rest: false });
-          celloNotes.push({ pitch: seed % 3 === 0 ? cFifth : cRoot, duration: 1, offset: barStart + 3, rest: false });
+          const walk = walkingBassFigure(barStart, root, fifth, chordTonesForBass, seed + bar + 2, nextRoot);
+          celloNotes.push(...walk);
         }
       }
     } else {
@@ -339,8 +386,8 @@ export function generateQuartet(input: QuartetGenerationInput): QuartetGeneratio
             violaNotes.push({ pitch: 55 + getChordTone(chord.symbol, (bar % 2) + 1), duration: 3, offset: barStart, rest: false });
             violaNotes.push({ pitch: 55 + getChordTone(chord.symbol, 2), duration: 1, offset: barStart + 3, rest: false });
           }
-          celloNotes.push({ pitch: cRoot, duration: 2, offset: barStart, rest: false });
-          celloNotes.push({ pitch: cFifth, duration: 2, offset: barStart + 2, rest: false });
+          const walk = walkingBassFigure(barStart, root, fifth, chordTonesForBass, seed + bar + 3, nextRoot);
+          celloNotes.push(...walk);
         }
       } else {
         if (!reduceTexture) {
@@ -349,11 +396,8 @@ export function generateQuartet(input: QuartetGenerationInput): QuartetGeneratio
           }
         }
         if (chord) {
-          const cSeq = [cRoot, cRoot, cFifth, cRoot];
-          const idx = seed % 4;
-          for (let i = 0; i < 4; i++) {
-            celloNotes.push({ pitch: cSeq[(idx + i) % 4], duration: 1, offset: barStart + i, rest: false });
-          }
+          const walk = walkingBassFigure(barStart, root, fifth, chordTonesForBass, seed + bar + 4, nextRoot);
+          celloNotes.push(...walk);
         }
       }
     }

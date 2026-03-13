@@ -30,19 +30,26 @@ function ensureDir(p: string): void {
 }
 
 function getPreloadPath(): string {
-  const base = path.join(__dirname, 'preload');
-  const js = base + '.js';
-  const mjs = base + '.mjs';
-  try {
-    if (fs.existsSync(js)) return js;
-    if (fs.existsSync(mjs)) return mjs;
-  } catch {
-    // fallthrough
+  const dir = __dirname;
+  const candidates = [
+    path.join(dir, 'preload.js'),
+    path.join(dir, 'preload.mjs'),
+    path.join(dir, '..', 'preload.js'),
+    path.join(dir, '..', 'preload.mjs'),
+    path.join(dir, 'dist-electron', 'preload.js'),
+  ];
+  for (const p of candidates) {
+    try {
+      if (fs.existsSync(p)) return path.resolve(p);
+    } catch {
+      // continue
+    }
   }
-  return js;
+  return path.join(dir, 'preload.js');
 }
 
 function createWindow(): void {
+  const preloadPath = getPreloadPath();
   mainWindow = new BrowserWindow({
     width: 1200,
     height: 900,
@@ -50,9 +57,10 @@ function createWindow(): void {
     minHeight: 700,
     title: 'Monk Composer - Creative Rule Engines',
     webPreferences: {
-      preload: getPreloadPath(),
+      preload: preloadPath,
       contextIsolation: true,
       nodeIntegration: false,
+      sandbox: false,
     },
     icon: path.join(__dirname, '../../assets/app-icon.png'),
   });
@@ -81,6 +89,10 @@ app.whenReady().then(() => {
 
 app.on('window-all-closed', () => {
   if (process.platform !== 'darwin') app.quit();
+});
+
+ipcMain.handle('fs:ping', async (): Promise<boolean> => {
+  return true;
 });
 
 ipcMain.handle('fs:readFile', async (_, filePath: string): Promise<string> => {
@@ -160,15 +172,37 @@ ipcMain.handle('fs:openPath', async (_, dirPath: string): Promise<string> => {
   return shell.openPath(dirPath);
 });
 
-ipcMain.handle('fs:exportMusicXML', async (_, exportPath: string, filename: string, content: string): Promise<{ success: boolean; path: string }> => {
+ipcMain.handle('fs:exportMusicXML', async (_, exportPath: string, filename: string, content: string): Promise<{ success: boolean; path: string; error?: string }> => {
   const baseName = filename.endsWith('.musicxml') ? filename : `${filename}.musicxml`;
   const fullPath = path.join(exportPath, baseName);
   try {
     ensureDir(exportPath);
     fs.writeFileSync(fullPath, content, 'utf-8');
     return { success: true, path: fullPath };
-  } catch {
+  } catch (err) {
+    return { success: false, path: '', error: err instanceof Error ? err.message : 'Write failed' };
+  }
+});
+
+/** Export via Save As dialog - more reliable; main process owns the file picker. */
+ipcMain.handle('fs:exportMusicXMLWithDialog', async (_, defaultFilename: string, content: string): Promise<{ success: boolean; path: string; error?: string }> => {
+  const baseName = defaultFilename.endsWith('.musicxml') ? defaultFilename : `${defaultFilename}.musicxml`;
+  const win = mainWindow ?? BrowserWindow.getAllWindows()[0] ?? null;
+  const result = await dialog.showSaveDialog(win, {
+    title: 'Save MusicXML',
+    defaultPath: path.join(getDefaultExportPath(), baseName),
+    filters: [{ name: 'MusicXML', extensions: ['musicxml'] }],
+  });
+  if (result.canceled || !result.filePath) {
     return { success: false, path: '' };
+  }
+  const filePath = result.filePath.endsWith('.musicxml') ? result.filePath : `${result.filePath}.musicxml`;
+  try {
+    ensureDir(path.dirname(filePath));
+    fs.writeFileSync(filePath, content, 'utf-8');
+    return { success: true, path: filePath };
+  } catch (err) {
+    return { success: false, path: '', error: err instanceof Error ? err.message : 'Write failed' };
   }
 });
 
