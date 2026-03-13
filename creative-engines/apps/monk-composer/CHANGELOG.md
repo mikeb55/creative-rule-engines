@@ -2,6 +2,34 @@
 
 ## [Unreleased]
 
+### 2025-03-11 — Unified GUI and Script Chord Export
+
+- **Unified GUI and script MusicXML export path** — Both GUI export and script exports (`test:voicing`, `generate-voicing-demo`) now call the same `compositionToMusicXML` function. One canonical exporter for chord-capable output.
+
+- **Fixed chosen-directory export bug** — When the user selects an output directory via Browse or Use Default, the GUI now uses `exportMusicXML(path, filename, xml)` to write directly to that path instead of always opening the save dialog. The chosen directory is respected.
+
+- **Added debug logging for GUI export** — In development mode only, logs export function used (path-based vs dialog), target, event count, chord event count, and destination path.
+
+- **Added visible app version/build label** — UI shows "v0.4.1 — chord export unified" to confirm the rebuilt app is the latest version.
+
+- **Added GUI export validation files** — Test cases: `gui-test-guitar.musicxml`, `gui-test-piano.musicxml`, `gui-test-bigband.musicxml` exported via GUI to verify chord events.
+
+### 2025-03-11 — All Targets Polyphonic (Guitar, Piano, Big Band)
+
+- **Big band voicing added** — Big Band Sketch now uses piano voicing (same as Piano Reduction); exports dyads/triads instead of single-note lines.
+
+- **Auto-regenerate on target change** — When switching instrument (Guitar, Piano Reduction, Big Band), composition regenerates automatically so export always matches the selected target.
+
+### 2025-03-11 — Guitar and Piano Polyphonic Voicing (Fix)
+
+- **Guitar voicing engine fixed** — Deterministic harmonization (every 2nd note + 25% of 4th); fallback support tone when chord tones empty; ensures dyads/triads in export.
+
+- **Piano voicing engine added** — New `pianoVoicingEngine.ts` applies triads, shell voicings, guide-tone dyads to piano target. Same pipeline as guitar.
+
+- **MusicXML chord grouping fixed** — Round offsets to 3 decimals when grouping simultaneous notes; prevents floating-point mismatch from monk phrase displacement.
+
+- **Both guitar and piano** now export actual chord events with `<chord/>` notation.
+
 ### 2025-03-11 — Debug Diagnostics Panel and Export
 
 - **Debug diagnostics panel added** — Collapsible "Debug Diagnostics" section in the Audit panel shows raw GCEScores, warnings, and quartetDiagnostics (when target is string quartet).

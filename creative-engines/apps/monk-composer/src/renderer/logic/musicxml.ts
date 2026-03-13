@@ -29,14 +29,15 @@ function durationToType(duration: number): string {
   return '16th';
 }
 
-function noteToXml(n: Note, divs: number, indent = '    '): string {
+function noteToXml(n: Note, divs: number, indent = '    ', isChord = false): string {
   const dur = Math.max(1, Math.round(n.duration * divs));
   if (n.rest) {
     return `${indent}<note><rest/><duration>${dur}</duration><type>${durationToType(n.duration)}</type></note>`;
   }
   const { step, octave, alter } = midiToStepOctave(n.pitch);
   const alterXml = alter ? `<alter>${alter}</alter>` : '';
-  return `${indent}<note><pitch><step>${step}</step>${alterXml}<octave>${octave}</octave></pitch><duration>${dur}</duration><type>${durationToType(n.duration)}</type></note>`;
+  const chordTag = isChord ? '<chord/>' : '';
+  return `${indent}<note>${chordTag}<pitch><step>${step}</step>${alterXml}<octave>${octave}</octave></pitch><duration>${dur}</duration><type>${durationToType(n.duration)}</type></note>`;
 }
 
 function escapeXml(s: string): string {
@@ -114,6 +115,25 @@ export function compositionToMusicXML(
   );
 }
 
+/** Group notes into chords (same offset+duration) and single notes; groups ordered by offset */
+function groupNotesForChords(notes: (Note & { offset: number })[]): (Note & { offset: number })[][] {
+  const byKey = new Map<string, (Note & { offset: number })[]>();
+  const round = (x: number) => Math.round(x * 1000) / 1000;
+  for (const n of notes) {
+    const key = `${round(n.offset)}_${round(n.duration ?? 0)}`;
+    if (!byKey.has(key)) byKey.set(key, []);
+    byKey.get(key)!.push(n);
+  }
+  const groups = [...byKey.entries()].sort((a, b) => {
+    const oa = parseFloat(a[0].split('_')[0]);
+    const ob = parseFloat(b[0].split('_')[0]);
+    return oa - ob;
+  }).map(([, g]) => g);
+  return groups.map(group =>
+    group.sort((a, b) => (b.pitch ?? 0) - (a.pitch ?? 0))
+  );
+}
+
 function buildSinglePartXml(
   _notes: (Note & { offset: number })[],
   measureMap: Map<number, (Note & { offset: number })[]>,
@@ -133,7 +153,10 @@ function buildSinglePartXml(
     const attrs = m === 0
       ? `<attributes><divisions>${divs}</divisions><key><fifths>${fifths}</fifths></key><time><beats>${beats}</beats><beat-type>${beatType}</beat-type></time><clef><sign>G</sign><line>2</line></clef></attributes>`
       : '';
-    const notesXml = msrNotes.map(n => noteToXml(n, divs)).join('\n');
+    const groups = groupNotesForChords(msrNotes);
+    const notesXml = groups.flatMap(g =>
+      g.map((n, i) => noteToXml(n, divs, '      ', i > 0))
+    ).join('\n');
     const restXml = msrNotes.length === 0
       ? noteToXml({ pitch: 60, duration: beatsPerMeasure, rest: true }, divs)
       : '';

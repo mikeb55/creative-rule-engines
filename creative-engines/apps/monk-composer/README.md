@@ -23,6 +23,15 @@ After building:
 - **Portable**: `creative-engines/apps/monk-composer/release/Monk Composer.exe`
 - Or: `release/win-unpacked/Monk Composer.exe` (unpacked build)
 
+## Guitar and Piano Chord Export
+
+Guitar and piano targets export **polyphonic** output (dyads, triads, shell voicings), not single-note lines. If you see only single notes:
+
+1. **Rebuild the app**: `npm run electron:build` (or `npm run build`)
+2. **Restart** Monk Composer
+3. **Verify** with `npm run test:voicing` — must report chord events
+4. **Generate demos**: `npm run generate-voicing-demo` — writes verified files to `outputs/` and `Documents/Monk Composer Exports`
+
 ## Exporting MusicXML
 
 ### Naming the file

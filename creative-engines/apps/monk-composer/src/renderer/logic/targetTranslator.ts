@@ -1,5 +1,7 @@
 import type { Note, Chord, BarryControls, MonkControls, GlobalControls } from './types';
 import { generateQuartet } from './quartetEngine';
+import { applyGuitarVoicing } from './guitarVoicingEngine';
+import { applyPianoVoicing } from './pianoVoicingEngine';
 
 interface TargetOptions {
   playabilityStrictness: number;
@@ -19,20 +21,34 @@ export function translateToTarget(
   const harmony = options.harmony ?? [];
 
   if (target === 'guitar') {
+    const harmonized = applyGuitarVoicing(notes, harmony, {
+      harmonizeRatio: 0.5,
+      keyCenter: options.keyCenter ?? 'C',
+    });
     return [
       {
         voice: 1,
-        notes: notes.map(n => ({
+        notes: harmonized.map(n => ({
           ...n,
-          pitch: Math.min(84, Math.max(40, n.pitch)),
+          pitch: n.rest ? 0 : Math.min(84, Math.max(40, n.pitch)),
         })),
       },
     ];
   }
 
   if (target === 'piano') {
+    const harmonized = applyPianoVoicing(notes, harmony, {
+      harmonizeRatio: 0.5,
+      keyCenter: options.keyCenter ?? 'C',
+    });
     return [
-      { voice: 1, notes: notes.map(n => ({ ...n, pitch: Math.min(88, Math.max(21, n.pitch)) })) },
+      {
+        voice: 1,
+        notes: harmonized.map(n => ({
+          ...n,
+          pitch: n.rest ? 0 : Math.min(88, Math.max(21, n.pitch)),
+        })),
+      },
     ];
   }
 
@@ -62,8 +78,18 @@ export function translateToTarget(
   }
 
   if (target === 'big_band') {
+    const harmonized = applyPianoVoicing(notes, harmony, {
+      harmonizeRatio: 0.5,
+      keyCenter: options.keyCenter ?? 'C',
+    });
     return [
-      { voice: 1, notes: notes.map(n => ({ ...n })) },
+      {
+        voice: 1,
+        notes: harmonized.map(n => ({
+          ...n,
+          pitch: n.rest ? 0 : Math.min(88, Math.max(21, n.pitch)),
+        })),
+      },
     ];
   }
 

@@ -59,6 +59,11 @@ body {
   color: var(--text-muted);
 }
 
+.app-header .version-label {
+  font-size: 0.75rem;
+  opacity: 0.85;
+}
+
 .panel {
   background: var(--bg-panel);
   border-radius: var(--radius);

@@ -17,7 +17,10 @@
     "electron:build": "tsc && vite build && electron-builder --win",
     "generate-quartet-demo": "npx tsx scripts/generate-quartet-demo.ts",
     "generate-barry-working-strings": "npx tsx scripts/generate-barry-working-strings.ts",
-    "generate-lets-see": "npx tsx scripts/generate-lets-see.ts"
+    "generate-lets-see": "npx tsx scripts/generate-lets-see.ts",
+    "test:voicing": "npx tsx scripts/test-voicing-export.ts",
+    "generate-voicing-demo": "npx tsx scripts/generate-voicing-demo.ts",
+    "generate-gui-test-exports": "npx tsx scripts/generate-gui-test-exports.ts"
   },
   "dependencies": {
     "react": "^18.2.0",

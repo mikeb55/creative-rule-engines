@@ -52,6 +52,15 @@ export function App() {
   const engine = deriveEngine(barryEnabled, monkEnabled);
 
   useEffect(() => {
+    if (!composition || (!barryEnabled && !monkEnabled)) return;
+    const comp = generateDraft(engine, target, barry, monk, global);
+    setComposition(comp);
+    const { scores: s, warnings: w } = evaluateGCE(comp, target);
+    setScores(s);
+    setWarnings(w);
+  }, [target]); // Regenerate when instrument target changes so composition matches selection
+
+  useEffect(() => {
     const api = (typeof window !== 'undefined' && window.electronAPI) ? window.electronAPI : null;
     if (!api) {
       setElectronAPIAvailable(false);
@@ -113,7 +122,7 @@ export function App() {
     handleRaiseGCE();
   }, [handleRaiseGCE]);
 
-  const handleExport = useCallback(async (filename: string, path: string) => {
+  const handleExport = useCallback(async (filename: string, exportPath: string) => {
     if (!composition) return { success: false, path: '' };
     const threshold = global.gceThreshold;
     let compToExport = composition;
@@ -135,18 +144,25 @@ export function App() {
     if (!validateMusicXML(xml)) return { success: false, path: '' };
     const defaultName = filename.trim() || 'monk_composition';
     const sanitized = defaultName.replace(/[<>:"/\\|?*]/g, '_').trim() || 'monk_composition';
+    const chordCount = (xml.match(/<chord\/>/g) ?? []).length;
+    const eventCount = (xml.match(/<note>/g) ?? []).length;
+    if (DEV) {
+      console.debug('[Monk Composer] Export GUI:', { target, eventCount, chordCount, path: exportPath || '(dialog)' });
+    }
+    if (exportPath && exportPath.trim() && window.electronAPI?.exportMusicXML) {
+      const result = await window.electronAPI.exportMusicXML(exportPath, sanitized, xml);
+      if (result.success) setExportedPath(result.path);
+      if (DEV) console.debug('[Monk Composer] Export path-based:', result.path);
+      return result;
+    }
     if (window.electronAPI?.exportMusicXMLWithDialog) {
       const result = await window.electronAPI.exportMusicXMLWithDialog(sanitized, xml);
       if (result.success) setExportedPath(result.path);
-      return result;
-    }
-    if (window.electronAPI?.exportMusicXML && path) {
-      const result = await window.electronAPI.exportMusicXML(path, sanitized, xml);
-      if (result.success) setExportedPath(result.path);
+      if (DEV) console.debug('[Monk Composer] Export dialog:', result.path);
       return result;
     }
     return { success: false, path: '' };
-  }, [composition, scores, target, global.keyCenter, global.meter, global.gceThreshold, barry, monk, global, engine]);
+  }, [composition, scores, target, global.keyCenter, global.meter, global.gceThreshold, barry, monk, global, engine, DEV]);
 
   const handleSavePreset = useCallback(async () => {
     const name = prompt('Preset name:');
@@ -219,6 +235,7 @@ export function App() {
       <header className="app-header">
         <h1>Monk Composer</h1>
         <p>Creative Rule Engines — Barry Harris + Monk composition</p>
+        <p className="version-label">v0.4.1 — chord export unified</p>
       </header>
 
       <div className="grid-2">
