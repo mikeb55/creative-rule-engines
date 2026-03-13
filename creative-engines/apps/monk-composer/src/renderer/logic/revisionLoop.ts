@@ -44,12 +44,17 @@ export function runRevisionLoop(
 
     if (target === 'string_quartet' && comp.texture?.length === 4 && comp.motif && comp.harmony) {
       const quartetFixes = [
-        warnings.celloLoop,
+        warnings.repeatedBarSyndrome,
+        warnings.repeated2BarLoopSyndrome,
         warnings.violaFiller,
+        warnings.celloLoop,
+        warnings.tooManyAllInstrumentsActive,
+        warnings.noTexturalReduction,
+        warnings.noMotivicMigration,
+        warnings.lackComplementaryRhythm,
         warnings.staticInnerVoice,
         warnings.repeatedAccompanimentCell,
         warnings.noTextureRotation,
-        warnings.noMotivicMigration,
         warnings.nonBowable,
         warnings.upperLowerDisconnect,
       ].filter(Boolean);
@@ -83,11 +88,16 @@ export function runRevisionLoop(
           quartetDiagnostics: {
             textureRotationCount: result.textureRotations,
             motifMigrationCount: result.motifMigrations,
-            repeatedCellWarnings: 0,
+            repeatedCellWarnings: result.diagnostics?.repeatedBarWarnings ?? 0,
             bowabilityWarnings: 0,
-            innerVoiceIndependenceScore: 0.8,
-            celloIndependenceScore: 0.75,
-            violaUsefulnessScore: 0.8,
+            innerVoiceIndependenceScore: result.diagnostics?.complementaryRhythmScore ?? 0.8,
+            celloIndependenceScore: result.diagnostics?.celloIndependenceScore ?? 0.75,
+            violaUsefulnessScore: result.diagnostics?.violaUsefulnessScore ?? 0.8,
+            repeatedBarWarnings: result.diagnostics?.repeatedBarWarnings,
+            repeated2BarLoopWarnings: result.diagnostics?.repeated2BarLoopWarnings,
+            textureReductionCount: result.diagnostics?.textureReductionCount,
+            allVoicesActiveOveruse: result.diagnostics?.allVoicesActiveOveruse,
+            complementaryRhythmScore: result.diagnostics?.complementaryRhythmScore,
           },
           metadata: { ...comp.metadata, revisionCount: revisionCount + 1 },
         };

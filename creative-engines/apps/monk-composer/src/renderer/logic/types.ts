@@ -96,6 +96,13 @@ export interface Warnings {
   upperLowerDisconnect?: boolean;
   nonBowable?: boolean;
   fakeKeyboardDoubling?: boolean;
+  repeatedBarSyndrome?: boolean;
+  repeated2BarLoopSyndrome?: boolean;
+  staticAccompanimentSyndrome?: boolean;
+  allVoicesSameFigure?: boolean;
+  noTexturalReduction?: boolean;
+  tooManyAllInstrumentsActive?: boolean;
+  lackComplementaryRhythm?: boolean;
 }
 
 export interface QuartetDiagnostics {
@@ -106,6 +113,11 @@ export interface QuartetDiagnostics {
   innerVoiceIndependenceScore: number;
   celloIndependenceScore: number;
   violaUsefulnessScore: number;
+  repeatedBarWarnings?: number;
+  repeated2BarLoopWarnings?: number;
+  textureReductionCount?: number;
+  allVoicesActiveOveruse?: boolean;
+  complementaryRhythmScore?: number;
 }
 
 export interface Preset {

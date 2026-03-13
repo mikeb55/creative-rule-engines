@@ -55,14 +55,17 @@ export function AuditPanel({ scores, warnings, revisionCount, composition, instr
           <h4 style={{ margin: '0 0 8px', fontSize: '0.85rem' }}>Quartet diagnostics</h4>
           <div className="muted" style={{ fontSize: '0.8rem' }}>
             Texture rotations: {diag.textureRotationCount} · Motif migrations: {diag.motifMigrationCount}
-            {diag.repeatedCellWarnings > 0 && ` · Repeated cells: ${diag.repeatedCellWarnings}`}
+            {(diag.repeatedBarWarnings ?? diag.repeatedCellWarnings ?? 0) > 0 && ` · Repeated bar: ${diag.repeatedBarWarnings ?? diag.repeatedCellWarnings}`}
+            {(diag.repeated2BarLoopWarnings ?? 0) > 0 && ` · 2-bar loop: ${diag.repeated2BarLoopWarnings}`}
+            {diag.textureReductionCount !== undefined && ` · Texture reduction: ${diag.textureReductionCount}`}
             {diag.bowabilityWarnings > 0 && ` · Bowability: ${diag.bowabilityWarnings}`}
           </div>
           <div style={{ fontSize: '0.8rem', marginTop: 4 }}>
-            Inner voice: {Math.round((diag.innerVoiceIndependenceScore ?? 0) * 100)}% · 
-            Cello: {Math.round((diag.celloIndependenceScore ?? 0) * 100)}% · 
-            Viola: {Math.round((diag.violaUsefulnessScore ?? 0) * 100)}%
+            Viola usefulness: {Math.round((diag.violaUsefulnessScore ?? 0) * 100)}% · 
+            Cello independence: {Math.round((diag.celloIndependenceScore ?? 0) * 100)}% · 
+            Complementary rhythm: {Math.round((diag.complementaryRhythmScore ?? diag.innerVoiceIndependenceScore ?? 0) * 100)}%
           </div>
+          {diag.allVoicesActiveOveruse && <div className="warning-item" style={{ marginTop: 4 }}>All-voices-active overuse</div>}
         </div>
       )}
       {warnings && (
@@ -78,6 +81,11 @@ export function AuditPanel({ scores, warnings, revisionCount, composition, instr
           {warnings.celloLoop && <div className="warning-item">Cello loop syndrome</div>}
           {warnings.violaFiller && <div className="warning-item">Viola filler syndrome</div>}
           {warnings.repeatedAccompanimentCell && <div className="warning-item">Repeated accompaniment cell</div>}
+          {warnings.repeatedBarSyndrome && <div className="warning-item">Repeated bar syndrome</div>}
+          {warnings.repeated2BarLoopSyndrome && <div className="warning-item">Repeated 2-bar loop syndrome</div>}
+          {warnings.noTexturalReduction && <div className="warning-item">No textural reduction</div>}
+          {warnings.tooManyAllInstrumentsActive && <div className="warning-item">Too many all-instruments-active passages</div>}
+          {warnings.lackComplementaryRhythm && <div className="warning-item">Lack of complementary rhythm</div>}
           {warnings.noTextureRotation && <div className="warning-item">No texture rotation</div>}
           {warnings.noMotivicMigration && <div className="warning-item">No motivic migration</div>}
           {warnings.upperLowerDisconnect && <div className="warning-item">Upper/lower layer disconnect</div>}

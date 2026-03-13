@@ -73,11 +73,16 @@ export function generateDraft(
     quartetDiagnostics = {
       textureRotationCount: result.textureRotations,
       motifMigrationCount: result.motifMigrations,
-      repeatedCellWarnings: 0,
+      repeatedCellWarnings: result.diagnostics?.repeatedBarWarnings ?? 0,
       bowabilityWarnings: 0,
-      innerVoiceIndependenceScore: 0.8,
-      celloIndependenceScore: 0.75,
-      violaUsefulnessScore: 0.8,
+      innerVoiceIndependenceScore: result.diagnostics?.complementaryRhythmScore ?? 0.8,
+      celloIndependenceScore: result.diagnostics?.celloIndependenceScore ?? 0.75,
+      violaUsefulnessScore: result.diagnostics?.violaUsefulnessScore ?? 0.8,
+      repeatedBarWarnings: result.diagnostics?.repeatedBarWarnings,
+      repeated2BarLoopWarnings: result.diagnostics?.repeated2BarLoopWarnings,
+      textureReductionCount: result.diagnostics?.textureReductionCount,
+      allVoicesActiveOveruse: result.diagnostics?.allVoicesActiveOveruse,
+      complementaryRhythmScore: result.diagnostics?.complementaryRhythmScore,
     };
   } else {
     texture = translateToTarget(

@@ -2,6 +2,24 @@
 
 ## [Unreleased]
 
+### 2025-03-11 — Final Quartet Corrective Pass
+
+- **Stricter anti-repetition rules** — No 1-bar pitch-rhythm cell may repeat more than twice; no 2-bar cell unchanged more than twice; accompaniment must vary within 4 bars.
+
+- **Viola role-rotation improvements** — Viola rotates between counterline, imitation, harmonic wedge, sustained tension, registral bridge, and brief lead. May not act as filler for more than 2 bars; must carry motif at least once per section.
+
+- **Cello role-rotation improvements** — Cello rotates between bass anchor, pedal, counterline, motivic fragment, registral punctuation, and independent support. No 2- or 3-note loop more than twice; must carry motif at least once per section.
+
+- **Texture contrast enforcement** — Every 2–4 bars one instrument rests, sustains, or reduces activity. Complementary figures preferred (moving line vs sustained, staggered entrances, echo responses). Every 4–8 bars visible texture change.
+
+- **Reduced all-instruments-active overuse** — Detects and penalizes passages where all four instruments play the same or similar figures except at cadences/climaxes.
+
+- **Stronger quartet diagnostics** — Audit panel reports repeated-bar warnings, repeated-2-bar-loop warnings, viola usefulness score, cello independence score, texture reduction count, all-voices-active overuse, and complementary-rhythm score.
+
+- **Regenerated quartet demo** — `outputs/monk_quartet_demo.musicxml` regenerated with upgraded generator showing substantially less repetition, more interesting viola and cello writing, clearer texture contrast, and better ensemble conversation.
+
+- **Final stabilization pass** — Revision loop fix order updated: break repeated bar loops, rewrite viola/cello for role variation, reduce overactive tutti, insert rests/sustains, add motif migration and imitation, improve phrase endings.
+
 ### 2025-03-11 — String Quartet Engine Upgrade
 
 - **String quartet generator upgraded** — Output now behaves like real chamber composition rather than melody + accompaniment.

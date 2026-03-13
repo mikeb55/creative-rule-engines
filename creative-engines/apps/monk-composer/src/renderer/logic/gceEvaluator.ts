@@ -90,6 +90,13 @@ export function evaluateGCE(comp: Composition, target: string): { scores: GCESco
     upperLowerDisconnect: false,
     nonBowable: false,
     fakeKeyboardDoubling: false,
+    repeatedBarSyndrome: false,
+    repeated2BarLoopSyndrome: false,
+    staticAccompanimentSyndrome: false,
+    allVoicesSameFigure: false,
+    noTexturalReduction: false,
+    tooManyAllInstrumentsActive: false,
+    lackComplementaryRhythm: false,
   };
 
   const cadenceStrength = comp.harmony?.length
@@ -115,6 +122,14 @@ export function evaluateGCE(comp: Composition, target: string): { scores: GCESco
     const nonBowable = bowScore < 0.6;
     const fakeDoubling = (vn1?.length ?? 0) > 0 && (vn2?.length ?? 0) > 0 && Math.abs((vn1?.[0]?.pitch ?? 0) - (vn2?.[0]?.pitch ?? 0)) === 8;
 
+    const repeatedBarSyndrome = (diag?.repeatedBarWarnings ?? 0) >= 1;
+    const repeated2BarLoopSyndrome = (diag?.repeated2BarLoopWarnings ?? 0) >= 2;
+    const noTexturalReduction = (diag?.textureReductionCount ?? 0) < Math.floor(bars / 6);
+    const tooManyAllInstrumentsActive = diag?.allVoicesActiveOveruse ?? false;
+    const lackComplementaryRhythm = (diag?.complementaryRhythmScore ?? 0.8) < 0.6;
+    const violaUsefulnessLow = (diag?.violaUsefulnessScore ?? 0.8) < 0.7;
+    const celloIndependenceLow = (diag?.celloIndependenceScore ?? 0.75) < 0.65;
+
     warnings.staticInnerVoice = staticInner;
     warnings.celloLoop = celloLoop;
     warnings.violaFiller = violaFiller;
@@ -124,6 +139,11 @@ export function evaluateGCE(comp: Composition, target: string): { scores: GCESco
     warnings.upperLowerDisconnect = upperLowerDisconnect;
     warnings.nonBowable = nonBowable;
     warnings.fakeKeyboardDoubling = fakeDoubling;
+    warnings.repeatedBarSyndrome = repeatedBarSyndrome;
+    warnings.repeated2BarLoopSyndrome = repeated2BarLoopSyndrome;
+    warnings.noTexturalReduction = noTexturalReduction;
+    warnings.tooManyAllInstrumentsActive = tooManyAllInstrumentsActive;
+    warnings.lackComplementaryRhythm = lackComplementaryRhythm;
 
     const penalty =
       (staticInner ? 1.5 : 0) +
@@ -134,13 +154,20 @@ export function evaluateGCE(comp: Composition, target: string): { scores: GCESco
       (noMotivicMigration ? 0.7 : 0) +
       (upperLowerDisconnect ? 0.6 : 0) +
       (nonBowable ? 0.5 : 0) +
-      (fakeDoubling ? 0.3 : 0);
+      (fakeDoubling ? 0.3 : 0) +
+      (repeatedBarSyndrome ? 1.0 : 0) +
+      (repeated2BarLoopSyndrome ? 1.2 : 0) +
+      (noTexturalReduction ? 0.7 : 0) +
+      (tooManyAllInstrumentsActive ? 0.8 : 0) +
+      (lackComplementaryRhythm ? 0.6 : 0) +
+      (violaUsefulnessLow ? 0.5 : 0) +
+      (celloIndependenceLow ? 0.5 : 0);
 
     targetIdiom = Math.max(2, targetIdiom * 10 - penalty) / 10;
-    motivicIntegrity = Math.max(0.3, motivicIntegrity - (noMotivicMigration ? 0.15 : 0));
-    rhythmicPersonality = Math.max(0.3, rhythmicPersonality - (repeatedCells >= 3 ? 0.1 : 0));
+    motivicIntegrity = Math.max(0.3, motivicIntegrity - (noMotivicMigration ? 0.15 : 0) - (repeatedBarSyndrome ? 0.1 : 0));
+    rhythmicPersonality = Math.max(0.3, rhythmicPersonality - (repeatedCells >= 3 ? 0.1 : 0) - (repeated2BarLoopSyndrome ? 0.15 : 0));
     harmonicCoherence = Math.max(0.3, harmonicCoherence - (staticInner ? 0.1 : 0));
-    originality = Math.max(0.3, originality - (celloLoop || violaFiller ? 0.15 : 0));
+    originality = Math.max(0.3, originality - (celloLoop || violaFiller ? 0.15 : 0) - (tooManyAllInstrumentsActive ? 0.1 : 0));
     afterglow = (motivicIntegrity + rhythmicPersonality) / 2;
   }
 

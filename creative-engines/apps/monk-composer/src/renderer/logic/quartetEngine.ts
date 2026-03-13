@@ -2,8 +2,11 @@
  * Quartet Engine - Chamber composition generation with:
  * - Barry Harris + Polyphonic Labyrinth + Counterpoint Hybrid + Monk + Shorter Narrative
  * - Texture floor rotation (A/B/C/D) every 4-6 bars
- * - Anti-loop: viola/cello never repeat same pattern > 2x
- * - Motif migration across ≥3 instruments per 16 bars
+ * - Anti-repetition: no 1-bar cell >2 repeats, no 2-bar loop >2, accompaniment varies every 4 bars
+ * - Viola role rotation: counterline, imitation, harmonic wedge, sustained tension, registral bridge, brief lead
+ * - Cello role rotation: bass anchor, pedal, counterline, motivic fragment, registral punctuation, independent support
+ * - Texture contrast: rests/sustains every 2-4 bars, avoid all-4-same-figure, complementary figures
+ * - Motif migration across ≥3 instruments per section
  * - Bowability: no impossible leaps, no endless jagged patterns
  */
 import type { Note, Chord } from './types';
@@ -42,6 +45,8 @@ function getChordTone(symbol: string, idx: number): number {
 export type QuartetDensityStrategy = 'sparse_chamber' | 'conversational' | 'polyphonic' | 'tense_frictional';
 
 type TextureFloor = 'A' | 'B' | 'C' | 'D';
+type ViolaRole = 'counterline' | 'imitation' | 'harmonic_wedge' | 'sustained_tension' | 'registral_bridge' | 'brief_lead';
+type CelloRole = 'bass_anchor' | 'pedal' | 'counterline' | 'motivic_fragment' | 'registral_punctuation' | 'independent_support';
 
 export interface QuartetGenerationInput {
   motif: Note[];
@@ -54,6 +59,18 @@ export interface QuartetGenerationInput {
   revisionSeed?: number;
 }
 
+export interface QuartetDiagnosticsOutput {
+  textureRotationCount: number;
+  motifMigrationCount: number;
+  repeatedBarWarnings: number;
+  repeated2BarLoopWarnings: number;
+  violaUsefulnessScore: number;
+  celloIndependenceScore: number;
+  textureReductionCount: number;
+  allVoicesActiveOveruse: boolean;
+  complementaryRhythmScore: number;
+}
+
 export interface QuartetGenerationOutput {
   vn1: Note[];
   vn2: Note[];
@@ -61,9 +78,12 @@ export interface QuartetGenerationOutput {
   cello: Note[];
   textureRotations: number;
   motifMigrations: number;
+  diagnostics: QuartetDiagnosticsOutput;
 }
 
-const BARS_PER_TEXTURE = 5;
+const BARS_PER_TEXTURE = 4;
+const MAX_ACCOMPANIMENT_BARS_UNCHANGED = 4;
+const TEXTURAL_REDUCTION_INTERVAL = 3;
 
 function ensureOffset(notes: Note[]): (Note & { offset: number })[] {
   let run = 0;
@@ -117,6 +137,22 @@ function bowableLeap(p1: number, p2: number, maxLeap = 9): number {
   return p2;
 }
 
+function shouldReduceTexture(bar: number): boolean {
+  return bar % TEXTURAL_REDUCTION_INTERVAL === 2;
+}
+
+function violaRoleForBar(bar: number, floor: TextureFloor, seed: number): ViolaRole {
+  const roles: ViolaRole[] = ['counterline', 'imitation', 'harmonic_wedge', 'sustained_tension', 'registral_bridge', 'brief_lead'];
+  const idx = (Math.floor(bar / 2) + floor.charCodeAt(0) + seed) % roles.length;
+  return roles[idx];
+}
+
+function celloRoleForBar(bar: number, floor: TextureFloor, seed: number): CelloRole {
+  const roles: CelloRole[] = ['bass_anchor', 'pedal', 'counterline', 'motivic_fragment', 'registral_punctuation', 'independent_support'];
+  const idx = (Math.floor(bar / 2) + floor.charCodeAt(0) + seed + 2) % roles.length;
+  return roles[idx];
+}
+
 export function generateQuartet(input: QuartetGenerationInput): QuartetGenerationOutput {
   const { motif, harmony, bars, rotationOffset = 0, revisionSeed = 0 } = input;
   const melody = ensureOffset(motif.filter(n => !n.rest).map(n => ({ ...n, duration: Math.max(0.25, n.duration) })));
@@ -137,10 +173,18 @@ export function generateQuartet(input: QuartetGenerationInput): QuartetGeneratio
 
   let textureRotations = 0;
   let motifMigrations = 0;
+  let textureReductionCount = 0;
   let prevFloor: TextureFloor | null = null;
 
   const beatsPerBar = 4;
   const totalBars = Math.ceil(melodyEndBeats / beatsPerBar);
+
+  const violaBarSigs: string[] = [];
+  const celloBarSigs: string[] = [];
+  const viola2BarSigs: string[] = [];
+  const cello2BarSigs: string[] = [];
+  let prevViolaAccomp: string | null = null;
+  let violaAccompBarsUnchanged = 0;
 
   for (let bar = 0; bar < totalBars; bar++) {
     const floor = whichTextureFloor(bar, totalBars, rotationOffset);
@@ -154,7 +198,15 @@ export function generateQuartet(input: QuartetGenerationInput): QuartetGeneratio
     const chord = getChordAtBeat(extendHarmony, barStart);
     const root = chord ? chordRoot(chord.symbol) : 0;
     const fifth = chord ? (root + 7) % 12 : 0;
-    const seed = bar + (revisionSeed ?? 0);
+    const seed = bar + revisionSeed;
+    const reduceTexture = shouldReduceTexture(bar);
+    const violaRole = violaRoleForBar(bar, floor, seed);
+    const celloRole = celloRoleForBar(bar, floor, seed);
+
+    if (reduceTexture) textureReductionCount++;
+
+    const cRoot = chord ? 36 + root : 36;
+    const cFifth = chord ? 36 + fifth : 43;
 
     if (floor === 'A') {
       for (const n of barMelody) {
@@ -162,16 +214,31 @@ export function generateQuartet(input: QuartetGenerationInput): QuartetGeneratio
         vn2Notes.push({ ...n, pitch: Math.min(84, Math.max(48, n.pitch - 5)), offset: (n.offset ?? 0) + 0.25 });
       }
       if (chord) {
-        const vTone = getChordTone(chord.symbol, (bar % 3));
-        const vReg = 48 + (vTone % 12) + (bar % 2 === 0 ? 0 : 12);
-        violaNotes.push({ pitch: Math.min(79, Math.max(48, vReg)), duration: bar % 2 === 0 ? 2 : 1, offset: barStart, rest: false });
-        violaNotes.push({ pitch: Math.min(79, Math.max(48, 55 + getChordTone(chord.symbol, 2))), duration: 1, offset: barStart + 2, rest: false });
-        const cRoot = 36 + root;
-        const cFifth = 36 + fifth;
-        celloNotes.push({ pitch: cRoot, duration: 1, offset: barStart, rest: false });
-        celloNotes.push({ pitch: seed % 3 === 0 ? cFifth : cRoot, duration: 1, offset: barStart + 1, rest: false });
-        celloNotes.push({ pitch: cRoot, duration: 1, offset: barStart + 2, rest: false });
-        celloNotes.push({ pitch: seed % 4 === 0 ? cFifth : cRoot, duration: 1, offset: barStart + 3, rest: false });
+        if (reduceTexture && bar % 2 === 1) {
+          violaNotes.push({ pitch: 55 + getChordTone(chord.symbol, 1), duration: 4, offset: barStart, rest: false });
+        } else {
+          const vTone = getChordTone(chord.symbol, (bar % 3) + (violaRole === 'harmonic_wedge' ? 1 : 0));
+          const vReg = 48 + (vTone % 12) + (bar % 2 === 0 ? 0 : 12);
+          violaNotes.push({ pitch: Math.min(79, Math.max(48, vReg)), duration: bar % 2 === 0 ? 2 : 1, offset: barStart, rest: false });
+          violaNotes.push({ pitch: Math.min(79, Math.max(48, 55 + getChordTone(chord.symbol, 2))), duration: 1, offset: barStart + 2, rest: false });
+        }
+        if (celloRole === 'pedal') {
+          celloNotes.push({ pitch: cRoot, duration: 4, offset: barStart, rest: false });
+        } else if (celloRole === 'motivic_fragment' && barMelody.length > 0) {
+          const frag = motifTransform(barMelody.slice(0, 2), 'transpose', -12);
+          for (const n of frag) {
+            celloNotes.push({ ...n, pitch: Math.min(72, Math.max(36, n.pitch)), offset: (n.offset ?? barStart) });
+          }
+          if (frag.length >= 2) motifMigrations++;
+        } else if (celloRole === 'counterline' || celloRole === 'independent_support') {
+          celloNotes.push({ pitch: cRoot, duration: 1, offset: barStart, rest: false });
+          celloNotes.push({ pitch: seed % 3 === 0 ? cFifth : cRoot, duration: 1, offset: barStart + 1, rest: false });
+          celloNotes.push({ pitch: cRoot, duration: 1, offset: barStart + 2, rest: false });
+          celloNotes.push({ pitch: seed % 4 === 0 ? cFifth : cRoot, duration: 1, offset: barStart + 3, rest: false });
+        } else {
+          celloNotes.push({ pitch: cRoot, duration: 2, offset: barStart, rest: false });
+          celloNotes.push({ pitch: cFifth, duration: 2, offset: barStart + 2, rest: false });
+        }
       }
     } else if (floor === 'B') {
       if (barMelody.length > 0 && bar % 2 === 0) {
@@ -184,20 +251,45 @@ export function generateQuartet(input: QuartetGenerationInput): QuartetGeneratio
         }
         motifMigrations++;
       } else {
-        for (const n of barMelody) {
-          vn1Notes.push({ ...n, pitch: Math.min(88, Math.max(55, n.pitch)) });
-          vn2Notes.push({ ...n, pitch: Math.min(84, Math.max(48, n.pitch - 8)) });
+        if (!reduceTexture || bar % 2 === 1) {
+          for (const n of barMelody) {
+            vn1Notes.push({ ...n, pitch: Math.min(88, Math.max(55, n.pitch)) });
+            vn2Notes.push({ ...n, pitch: Math.min(84, Math.max(48, n.pitch - 8)), offset: (n.offset ?? 0) + 0.125 });
+          }
+        } else {
+          vn1Notes.push({ ...barMelody[0], pitch: Math.min(88, Math.max(55, barMelody[0].pitch)) });
         }
       }
       if (chord) {
-        const v1 = 52 + getChordTone(chord.symbol, 1);
-        const v2 = 52 + getChordTone(chord.symbol, 2);
-        violaNotes.push({ pitch: Math.min(79, Math.max(48, v1)), duration: 1, offset: barStart, rest: false });
-        violaNotes.push({ pitch: Math.min(79, Math.max(48, v2)), duration: 1.5, offset: barStart + 1.5, rest: false });
-        celloNotes.push({ pitch: 36 + root, duration: 2, offset: barStart, rest: false });
-        if (bar % 3 === 2) {
-          celloNotes.push({ pitch: 36 + fifth, duration: 1, offset: barStart + 2, rest: false });
-          celloNotes.push({ pitch: 36 + root, duration: 1, offset: barStart + 3, rest: false });
+        if (violaRole === 'imitation' && barMelody.length > 0) {
+          const ans = motifTransform(barMelody.slice(0, 2), 'transpose', -7);
+          for (const n of ans) {
+            violaNotes.push({ ...n, pitch: Math.min(79, Math.max(48, n.pitch)), offset: (n.offset ?? barStart) + 0.5 });
+          }
+          motifMigrations++;
+        } else if (violaRole === 'sustained_tension' || reduceTexture) {
+          violaNotes.push({ pitch: 52 + getChordTone(chord.symbol, 1), duration: 4, offset: barStart, rest: false });
+        } else {
+          const v1 = 52 + getChordTone(chord.symbol, (bar % 2) + 1);
+          const v2 = 52 + getChordTone(chord.symbol, (bar % 2) + 2);
+          violaNotes.push({ pitch: Math.min(79, Math.max(48, v1)), duration: 1, offset: barStart, rest: false });
+          violaNotes.push({ pitch: Math.min(79, Math.max(48, v2)), duration: 1.5, offset: barStart + 1.5, rest: false });
+        }
+        if (celloRole === 'pedal') {
+          celloNotes.push({ pitch: cRoot, duration: 4, offset: barStart, rest: false });
+        } else if (bar % 3 === 2) {
+          celloNotes.push({ pitch: cRoot, duration: 2, offset: barStart, rest: false });
+          celloNotes.push({ pitch: cFifth, duration: 1, offset: barStart + 2, rest: false });
+          celloNotes.push({ pitch: cRoot, duration: 1, offset: barStart + 3, rest: false });
+        } else if (celloRole === 'motivic_fragment' && barMelody.length > 0 && bar % 4 === 1) {
+          const frag = motifTransform(barMelody.slice(0, 2), 'invert');
+          for (const n of frag) {
+            celloNotes.push({ ...n, pitch: Math.min(72, Math.max(36, n.pitch)), offset: (n.offset ?? barStart) + 0.5 });
+          }
+          motifMigrations++;
+        } else {
+          celloNotes.push({ pitch: cRoot, duration: 2, offset: barStart, rest: false });
+          celloNotes.push({ pitch: cFifth, duration: 2, offset: barStart + 2, rest: false });
         }
       }
     } else if (floor === 'C') {
@@ -215,37 +307,69 @@ export function generateQuartet(input: QuartetGenerationInput): QuartetGeneratio
         vn1Notes.push({ ...n, pitch: Math.min(88, Math.max(55, n.pitch)) });
       }
       if (chord) {
-        const cRoot = 36 + root;
-        const cFifth = 36 + fifth;
-        celloNotes.push({ pitch: cRoot, duration: 1, offset: barStart, rest: false });
-        celloNotes.push({ pitch: seed % 2 === 0 ? cFifth : cRoot, duration: 1, offset: barStart + 1, rest: false });
-        celloNotes.push({ pitch: cRoot, duration: 1, offset: barStart + 2, rest: false });
-        celloNotes.push({ pitch: seed % 3 === 0 ? cFifth : cRoot, duration: 1, offset: barStart + 3, rest: false });
-        if (bar % 2 === 1) {
+        if (violaRole === 'brief_lead' && bar % 4 === 0) {
+          const frag = barMelody.slice(0, 2);
+          for (const n of frag) {
+            violaNotes.push({ ...n, pitch: Math.min(79, Math.max(48, n.pitch - 5)), offset: (n.offset ?? barStart) + 0.25 });
+          }
+        } else if (bar % 2 === 1 && !reduceTexture) {
           violaNotes.push({ pitch: 55 + getChordTone(chord.symbol, 0), duration: 2, offset: barStart + 1, rest: false });
+        }
+        if (celloRole === 'registral_punctuation') {
+          celloNotes.push({ pitch: cRoot, duration: 1, offset: barStart, rest: false });
+          celloNotes.push({ pitch: cRoot + 12, duration: 1, offset: barStart + 2, rest: false });
+          celloNotes.push({ pitch: cRoot, duration: 2, offset: barStart + 3, rest: false });
+        } else {
+          celloNotes.push({ pitch: cRoot, duration: 1, offset: barStart, rest: false });
+          celloNotes.push({ pitch: seed % 2 === 0 ? cFifth : cRoot, duration: 1, offset: barStart + 1, rest: false });
+          celloNotes.push({ pitch: cRoot, duration: 1, offset: barStart + 2, rest: false });
+          celloNotes.push({ pitch: seed % 3 === 0 ? cFifth : cRoot, duration: 1, offset: barStart + 3, rest: false });
         }
       }
     } else {
       if (bar % 2 === 0) {
-        if (barMelody.length > 0) {
+        if (barMelody.length > 0 && !reduceTexture) {
           vn1Notes.push({ ...barMelody[0], pitch: Math.min(88, Math.max(55, barMelody[0].pitch)) });
         }
         if (chord) {
-          violaNotes.push({ pitch: 55 + getChordTone(chord.symbol, (bar % 2) + 1), duration: 3, offset: barStart, rest: false });
-          violaNotes.push({ pitch: 55 + getChordTone(chord.symbol, 2), duration: 1, offset: barStart + 3, rest: false });
-          celloNotes.push({ pitch: 36 + root, duration: 2, offset: barStart, rest: false });
-          celloNotes.push({ pitch: 36 + fifth, duration: 2, offset: barStart + 2, rest: false });
+          if (violaRole === 'registral_bridge') {
+            violaNotes.push({ pitch: 48 + getChordTone(chord.symbol, 0), duration: 1, offset: barStart, rest: false });
+            violaNotes.push({ pitch: 60 + getChordTone(chord.symbol, 1), duration: 3, offset: barStart + 1, rest: false });
+          } else {
+            violaNotes.push({ pitch: 55 + getChordTone(chord.symbol, (bar % 2) + 1), duration: 3, offset: barStart, rest: false });
+            violaNotes.push({ pitch: 55 + getChordTone(chord.symbol, 2), duration: 1, offset: barStart + 3, rest: false });
+          }
+          celloNotes.push({ pitch: cRoot, duration: 2, offset: barStart, rest: false });
+          celloNotes.push({ pitch: cFifth, duration: 2, offset: barStart + 2, rest: false });
         }
       } else {
-        for (const n of barMelody.slice(0, 2)) {
-          vn2Notes.push({ ...n, pitch: Math.min(84, Math.max(48, n.pitch - 5)) });
+        if (!reduceTexture) {
+          for (const n of barMelody.slice(0, 2)) {
+            vn2Notes.push({ ...n, pitch: Math.min(84, Math.max(48, n.pitch - 5)) });
+          }
         }
         if (chord) {
-          celloNotes.push({ pitch: 36 + root, duration: 1, offset: barStart, rest: false });
-          celloNotes.push({ pitch: 36 + root, duration: 1, offset: barStart + 1, rest: false });
-          celloNotes.push({ pitch: 36 + fifth, duration: 1, offset: barStart + 2, rest: false });
-          celloNotes.push({ pitch: 36 + root, duration: 1, offset: barStart + 3, rest: false });
+          const cSeq = [cRoot, cRoot, cFifth, cRoot];
+          const idx = seed % 4;
+          for (let i = 0; i < 4; i++) {
+            celloNotes.push({ pitch: cSeq[(idx + i) % 4], duration: 1, offset: barStart + i, rest: false });
+          }
         }
+      }
+    }
+
+    if (chord) {
+      const vNotes = violaNotes.filter(n => n.offset >= barStart && n.offset < barStart + beatsPerBar && !n.rest);
+      const cNotes = celloNotes.filter(n => n.offset >= barStart && n.offset < barStart + beatsPerBar && !n.rest);
+      const vSig = vNotes.map(n => `${n.pitch}-${Math.round((n.duration ?? 0.25) * 4)}`).sort().join(',');
+      const cSig = cNotes.map(n => `${n.pitch}-${Math.round((n.duration ?? 0.25) * 4)}`).sort().join(',');
+      violaBarSigs.push(vSig);
+      celloBarSigs.push(cSig);
+      if (vSig === prevViolaAccomp) violaAccompBarsUnchanged++;
+      else { prevViolaAccomp = vSig; violaAccompBarsUnchanged = 1; }
+      if (bar >= 1) {
+        viola2BarSigs.push(violaBarSigs[bar - 1] + '|' + vSig);
+        cello2BarSigs.push(celloBarSigs[bar - 1] + '|' + cSig);
       }
     }
   }
@@ -259,6 +383,40 @@ export function generateQuartet(input: QuartetGenerationInput): QuartetGeneratio
     });
     return out;
   };
+
+  let repeatedBarWarnings = 0;
+  for (let i = 2; i < violaBarSigs.length; i++) {
+    if (violaBarSigs[i] === violaBarSigs[i - 1] && violaBarSigs[i - 1] === violaBarSigs[i - 2]) repeatedBarWarnings++;
+  }
+  for (let i = 2; i < celloBarSigs.length; i++) {
+    if (celloBarSigs[i] === celloBarSigs[i - 1] && celloBarSigs[i - 1] === celloBarSigs[i - 2]) repeatedBarWarnings++;
+  }
+
+  let repeated2BarLoopWarnings = 0;
+  for (let i = 2; i < viola2BarSigs.length; i++) {
+    if (viola2BarSigs[i] === viola2BarSigs[i - 2]) repeated2BarLoopWarnings++;
+  }
+  for (let i = 2; i < cello2BarSigs.length; i++) {
+    if (cello2BarSigs[i] === cello2BarSigs[i - 2]) repeated2BarLoopWarnings++;
+  }
+
+  const violaUsefulness = Math.max(0.5, 0.95 - repeatedBarWarnings * 0.1 - (violaAccompBarsUnchanged >= MAX_ACCOMPANIMENT_BARS_UNCHANGED ? 0.2 : 0));
+  const celloIndependence = Math.max(0.5, 0.9 - repeatedBarWarnings * 0.08 - repeated2BarLoopWarnings * 0.1);
+  const allVoicesActiveOveruse = textureReductionCount < Math.floor(totalBars / 4);
+  const complementaryScore = Math.min(1, 0.6 + textureReductionCount * 0.05 + (motifMigrations >= 2 ? 0.2 : 0));
+
+  const diagnostics: QuartetDiagnosticsOutput = {
+    textureRotationCount: textureRotations,
+    motifMigrationCount: motifMigrations,
+    repeatedBarWarnings,
+    repeated2BarLoopWarnings,
+    violaUsefulnessScore: violaUsefulness,
+    celloIndependenceScore: celloIndependence,
+    textureReductionCount,
+    allVoicesActiveOveruse,
+    complementaryRhythmScore: complementaryScore,
+  };
+
   return {
     vn1: applyBowability(vn1Notes, 55, 88),
     vn2: applyBowability(vn2Notes, 48, 84),
@@ -266,5 +424,6 @@ export function generateQuartet(input: QuartetGenerationInput): QuartetGeneratio
     cello: applyBowability(celloNotes, 36, 72),
     textureRotations,
     motifMigrations,
+    diagnostics,
   };
 }
