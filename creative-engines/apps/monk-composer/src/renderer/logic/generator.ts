@@ -27,7 +27,8 @@ export function generateDraft(
   target: OutputTarget,
   barry: BarryControls,
   monk: MonkControls,
-  global: GlobalControls
+  global: GlobalControls,
+  opts?: { revisionSeed?: number }
 ): Composition {
   const bars = Math.max(4, Math.min(128, global.bars));
   const chords = generateIIVProgression(global.keyCenter, bars);
@@ -121,6 +122,7 @@ export function generateDraft(
         keyCenter: global.keyCenter,
         global,
         engine,
+        revisionSeed: opts?.revisionSeed,
       }
     );
   }

@@ -160,9 +160,10 @@ export function runRevisionLoop(
       const engine = (opts.engine ?? comp.metadata?.engine ?? 'barry') as 'barry' | 'monk' | 'barry_monk';
       let draft = generateDraft(engine, target as 'guitar' | 'piano' | 'big_band', barry, monk, global);
       if (target === 'guitar' && draft.texture?.length) {
-        const g = validateGuitarIdiomHard(draft.texture);
-        if (!g.pass) {
-          draft = generateDraft(engine === 'barry_monk' ? 'barry' : engine, target, barry, monk, global);
+        let g = validateGuitarIdiomHard(draft.texture);
+        for (let retry = 0; !g.pass && retry < 5; retry++) {
+          draft = generateDraft(engine, target, barry, monk, global, { revisionSeed: retry + 1 });
+          g = validateGuitarIdiomHard(draft.texture ?? []);
         }
       }
       if (target === 'piano' && draft.texture?.length === 2) {

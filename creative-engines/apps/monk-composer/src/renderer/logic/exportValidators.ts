@@ -39,7 +39,7 @@ export function validateExportedMusicXML(
   const chordTags = (xml.match(/<chord\/>/g) ?? []).length;
   const noteTags = (xml.match(/<note>/g) ?? []).length;
   if (noteTags > 0 && chordTags === 0 && ['guitar', 'piano', 'big_band'].includes(options.target ?? '')) {
-    errors.push('Chordal target has no chord tags (possible flattening)');
+    errors.push('Chordal target has no chord tags (chord simultaneity collapsed)');
   }
 
   return {

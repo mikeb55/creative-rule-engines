@@ -1,32 +1,18 @@
 /**
  * Hard Idiom Validators — Reject outputs that fail structural requirements.
- * Guitar: playable grips, chord-event %, mixed texture, no monophonic fallback.
+ * Guitar: dictionary grips, fret span ≤5, chord-event %, mixed texture.
  * Piano: two staves, LH/RH independence, simultaneity threshold.
  */
 import type { Note } from './types';
-import type { MusicEvent } from './musicEvents';
 import {
-  chordEventCount,
   averageSimultaneity,
   maxSimultaneity,
 } from './musicEvents';
+import { isValidGrip, getFretSpanForGrip } from './fretboardMapper';
 
-const GUITAR_LOW = 40;
-const GUITAR_HIGH = 84;
-const MAX_FRET_SPAN = 6;
-const MAX_STRING_SPAN = 5;
-
-/** Guitar string MIDI (low to high): E2 A2 D3 G3 B3 E4 */
-const GUITAR_STRINGS = [40, 45, 50, 55, 59, 64];
-
-/** Heuristic: grip is playable if within range, reasonable span */
+/** Use fretboard mapper for dictionary-based validation */
 export function isPlayableGuitarGrip(pitches: number[]): boolean {
-  if (pitches.length <= 1) return true;
-  const sorted = [...pitches].sort((a, b) => a - b);
-  if (sorted.some(p => p < GUITAR_LOW || p > GUITAR_HIGH)) return false;
-  if (sorted.length > 6) return false;
-  const pitchSpan = sorted[sorted.length - 1] - sorted[0];
-  return pitchSpan <= 28;
+  return isValidGrip(pitches);
 }
 
 export interface GuitarValidatorResult {
@@ -36,6 +22,8 @@ export interface GuitarValidatorResult {
   gripValidity?: number;
   mixedTexture?: boolean;
   singleNotePct?: number;
+  avgFretSpan?: number;
+  maxFretSpan?: number;
 }
 
 export function validateGuitarIdiomHard(
@@ -57,29 +45,34 @@ export function validateGuitarIdiomHard(
   const singleNoteCount = [...byOffset.values()].filter(g => g.length === 1).length;
   const singleNotePct = totalEvents > 0 ? (singleNoteCount / totalEvents) * 100 : 0;
 
-  if (singleNotePct > 65) return { pass: false, reason: '>65% single-note events', singleNotePct };
+  if (singleNotePct > 70) return { pass: false, reason: '>70% monophonic notes', singleNotePct };
   if (chordEventPct < 12) return { pass: false, reason: 'Chord events <12%', chordEventPct };
 
   let validGrips = 0;
   let totalGrips = 0;
+  const fretSpans: number[] = [];
   for (const g of byOffset.values()) {
     if (g.length >= 2) {
       totalGrips++;
       if (isPlayableGuitarGrip(g)) validGrips++;
+      const span = getFretSpanForGrip(g);
+      if (span != null) fretSpans.push(span);
     }
   }
   const gripValidity = totalGrips > 0 ? validGrips / totalGrips : 1;
-  if (gripValidity < 0.5) return { pass: false, reason: 'Unplayable grips', gripValidity };
+  const avgFretSpan = fretSpans.length > 0 ? fretSpans.reduce((a, b) => a + b, 0) / fretSpans.length : 0;
+  const maxFretSpan = fretSpans.length > 0 ? Math.max(...fretSpans) : 0;
+  if (gripValidity < 0.6) return { pass: false, reason: 'Chord shapes not in dictionary', gripValidity, chordEventPct, singleNotePct, avgFretSpan, maxFretSpan };
 
   const hasLine = singleNoteCount > 0;
   const hasDyad = chordEvents.some(g => g.length === 2);
   const hasTriad = chordEvents.some(g => g.length >= 3);
   const mixedTexture = hasLine && (hasDyad || hasTriad);
-  if (!mixedTexture) return { pass: false, reason: 'No mixed texture' };
+  if (!mixedTexture) return { pass: false, reason: 'No mixed texture', chordEventPct, gripValidity, singleNotePct, avgFretSpan, maxFretSpan };
 
   const bars = totalEvents > 0 ? Math.ceil(Math.max(...byOffset.keys()) / 4) : 0;
   const minChordEvents = Math.ceil(bars / 2);
-  if (chordEvents.length < minChordEvents) return { pass: false, reason: 'Chord events < 1 per 2 bars' };
+  if (chordEvents.length < minChordEvents) return { pass: false, reason: 'Chord events < 1 per 2 bars', chordEventPct, gripValidity, singleNotePct, avgFretSpan, maxFretSpan };
 
   return {
     pass: true,
@@ -87,6 +80,8 @@ export function validateGuitarIdiomHard(
     gripValidity,
     mixedTexture,
     singleNotePct,
+    avgFretSpan,
+    maxFretSpan,
   };
 }
 

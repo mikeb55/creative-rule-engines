@@ -25,7 +25,9 @@ After building:
 
 ## Guitar and Piano Chord Export
 
-Guitar and piano targets export **polyphonic** output (dyads, triads, shell voicings), not single-note lines. The pipeline uses an internal chord-event model (`musicEvents.ts`) and target-specific voicing engines (`guitarVoicingEngine.ts`, `pianoVoicingEngine.ts`). Hard idiom validators reject outputs that fail playability or structural requirements.
+Guitar uses a **fretboard-aware voicing system**: dictionary-based chord generation only (no piano-style pitch stacking). Voicing families: shell, triad, drop-2, quartal, guide-tone dyads. Fretboard mapper enforces max fret span (5), adjacent-string shapes. Voice-leading engine minimizes fret displacement. Rhythmic comping patterns (A–D) ensure consistent comp rhythm. Hard idiom validators reject outputs that fail playability or structural requirements.
+
+Piano uses target-specific voicing engines (`pianoVoicingEngine.ts`). Both guitar and piano use the internal chord-event model (`musicEvents.ts`).
 
 **Generate fixed outputs** (with retry until pass):
 ```bash

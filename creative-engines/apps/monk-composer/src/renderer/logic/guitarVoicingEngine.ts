@@ -1,15 +1,22 @@
 /**
- * Guitar Voicing Engine — Real chord events, mixed texture.
- * Shells, guide-tone dyads, compact triads; melody on top when required.
- * At least one chord event every two measures. Valid string grouping, realistic fret span.
+ * Guitar Voicing Engine — Fretboard-aware, dictionary-based only.
+ * No pitch stacking. Uses guitarVoicingDictionary, fretboardMapper, voice-leading, rhythm templates.
  */
 import type { Note, Chord } from './types';
 import type { MusicEvent } from './musicEvents';
-import { guideToneDyad, shellVoicing, compactTriad, compact4 } from './voicingFamilies';
 import { eventsToTexture } from './musicEvents';
+import { getVoicingsForChord } from './fretboardMapper';
+import { chooseNextVoicing, type VoiceLeadingContext } from './guitarVoiceLeading';
+import {
+  RHYTHM_TEMPLATES,
+  getChordBeatsForBar,
+  type CompPattern,
+} from './guitarRhythmTemplates';
+import { buildPhrases, getPhraseZone } from './phraseTemplates';
 
 const GUITAR_LOW = 40;
 const GUITAR_HIGH = 84;
+const BEATS_PER_BAR = 4;
 
 function getChordAtBeat(harmony: Chord[], offset: number): Chord | undefined {
   for (let i = harmony.length - 1; i >= 0; i--) {
@@ -18,47 +25,18 @@ function getChordAtBeat(harmony: Chord[], offset: number): Chord | undefined {
   return harmony[0];
 }
 
-const GUITAR_STRINGS = [40, 45, 50, 55, 59, 64];
-const MAX_STRING_SPAN = 5;
-const MAX_FRET_SPAN = 6;
-
-function stringForPitch(p: number): number {
-  for (let s = GUITAR_STRINGS.length - 1; s >= 0; s--) {
-    if (p >= GUITAR_STRINGS[s]) return s;
-  }
-  return 0;
-}
-
-function isPlayableGrip(pitches: number[]): boolean {
-  if (pitches.length <= 1) return true;
-  const sorted = [...pitches].sort((a, b) => a - b);
-  if (sorted.some(p => p < GUITAR_LOW || p > GUITAR_HIGH)) return false;
-  const strings = sorted.map(p => stringForPitch(p));
-  if (Math.max(...strings) - Math.min(...strings) > MAX_STRING_SPAN) return false;
-  const frets = sorted.map((p, i) => p - GUITAR_STRINGS[strings[i]]);
-  if (Math.max(...frets) - Math.min(...frets) > MAX_FRET_SPAN) return false;
-  return true;
-}
-
-function filterSupport(melodyPitch: number, candidates: number[]): number[] {
-  return candidates
-    .map(p => Math.min(GUITAR_HIGH, Math.max(GUITAR_LOW, p)))
-    .filter(p => p < melodyPitch && p >= GUITAR_LOW)
-    .filter(p => melodyPitch - p <= 24) // keep within 2 octaves for playability
-    .slice(0, 3);
-}
-
 export interface GuitarVoicingOptions {
   monkMode?: boolean;
   barryMode?: boolean;
   bars?: number;
   keyCenter?: string;
   rng?: () => number;
+  revisionSeed?: number;
 }
 
 /**
- * Generate guitar events with true chord simultaneity.
- * Guarantees at least one chord event every two measures.
+ * Generate guitar events from dictionary voicings only.
+ * Rhythm from templates. Voice-leading between chords.
  */
 export function generateGuitarEvents(
   melody: Note[],
@@ -66,27 +44,30 @@ export function generateGuitarEvents(
   options: GuitarVoicingOptions = {}
 ): MusicEvent[] {
   const rng = options.rng ?? (() => Math.random());
+  const seed = options.revisionSeed ?? 0;
   const bars = options.bars ?? (Math.ceil((melody[melody.length - 1]?.offset ?? 0) / 4) || 8);
-  const monkMode = options.monkMode ?? false;
-  const barryMode = options.barryMode ?? true;
+  const { starts: phraseStarts, lengths: phraseLengths } = buildPhrases(bars, rng);
 
+  const pattern: CompPattern = RHYTHM_TEMPLATES[(seed % RHYTHM_TEMPLATES.length + RHYTHM_TEMPLATES.length) % RHYTHM_TEMPLATES.length].pattern;
+  const voiceContext: VoiceLeadingContext = { lastVoicing: null, lastTopPitch: null };
   const events: MusicEvent[] = [];
-  const beatsPerBar = 4;
 
-  // Beats that MUST have a chord event (at least 1 per 2 bars)
-  const requiredChordBeats = new Set<number>();
-  for (let bar = 0; bar < bars; bar += 2) {
-    requiredChordBeats.add(bar * beatsPerBar + 1);
-  }
+  const familyOrder: ('shell' | 'guideTone' | 'triad')[][] = [
+    ['shell', 'guideTone', 'triad'],
+    ['guideTone', 'shell', 'triad'],
+    ['triad', 'shell', 'guideTone'],
+    ['shell', 'triad', 'guideTone'],
+    ['guideTone', 'triad', 'shell'],
+  ];
+  const families = familyOrder[seed % familyOrder.length];
+  let singleNoteRun = 0;
 
-  // Track which required beats we've covered
-  const coveredChordBeats = new Set<number>();
-
-  // Process melody notes in order
   for (let i = 0; i < melody.length; i++) {
     const n = melody[i];
     const offset = n.offset ?? 0;
     const duration = n.duration ?? 0.5;
+    const bar = Math.floor(offset / BEATS_PER_BAR);
+    const barInBar = offset - bar * BEATS_PER_BAR;
 
     if (n.rest) {
       events.push({
@@ -97,86 +78,97 @@ export function generateGuitarEvents(
         voice: 1,
         role: 'punctuation',
       });
+      singleNoteRun = 0;
       continue;
     }
 
     const pitch = Math.min(GUITAR_HIGH, Math.max(GUITAR_LOW, n.pitch));
     const chord = getChordAtBeat(harmony, offset);
-    const beatFloor = Math.floor(offset);
 
-    // Force chord if we're at a required beat we haven't covered
-    const mustChord = requiredChordBeats.has(beatFloor) && !coveredChordBeats.has(beatFloor);
-    const shouldChord = (chord && (mustChord || rng() < 0.72));
+    let phraseIdx = 0;
+    for (let p = 0; p < phraseStarts.length; p++) {
+      const len = phraseLengths[p] ?? 4;
+      if (bar >= phraseStarts[p] && bar < phraseStarts[p] + len) {
+        phraseIdx = p;
+        break;
+      }
+    }
+    const phraseStart = phraseStarts[phraseIdx] ?? 0;
+    const phraseLen = phraseLengths[phraseIdx] ?? 4;
+    const barInPhrase = bar - phraseStart;
+    const chordBeats = getChordBeatsForBar(pattern, barInPhrase, phraseLen, BEATS_PER_BAR);
+    const globalChordBeats = chordBeats.map(b => bar * BEATS_PER_BAR + b);
 
-    if (!shouldChord || !chord) {
-      events.push({
-        pitches: [pitch],
-        duration,
-        beatPosition: offset,
-        staff: 1,
-        voice: 1,
-        role: 'melody',
-      });
-      continue;
+    const nearChordBeat = globalChordBeats.some(cb => Math.abs(cb - offset) < 0.6);
+    const forceChord = singleNoteRun >= 4;
+    const onStrongBeat = Math.abs(offset % 1) < 0.2 || Math.abs(offset % 1 - 0.5) < 0.2;
+    const shouldChord = chord && (nearChordBeat || forceChord || onStrongBeat) && rng() < 0.7;
+
+    if (shouldChord && chord) {
+      const voicing = chooseNextVoicing(chord, voiceContext, families);
+      if (voicing && voicing.pitches.length >= 2) {
+        voiceContext.lastVoicing = voicing;
+        voiceContext.lastTopPitch = Math.max(...voicing.pitches);
+        events.push({
+          pitches: voicing.pitches,
+          duration,
+          beatPosition: offset,
+          staff: 1,
+          voice: 1,
+          role: voicing.pitches.length >= 3 ? 'triad' : 'shell',
+        });
+        singleNoteRun = 0;
+        continue;
+      }
     }
 
-    coveredChordBeats.add(beatFloor);
-
-    const textureRoll = rng();
-    let support: number[] = [];
-
-    if (monkMode) {
-      if (textureRoll < 0.35) support = guideToneDyad(chord, 3, '37');
-      else if (textureRoll < 0.65) support = guideToneDyad(chord, 3, '73');
-      else support = shellVoicing(chord, 3).slice(0, 2);
-    } else if (barryMode) {
-      if (textureRoll < 0.3) support = guideToneDyad(chord, 3, '37');
-      else if (textureRoll < 0.55) support = compactTriad(chord, 3).slice(0, 2);
-      else if (textureRoll < 0.8) support = shellVoicing(chord, 3).slice(0, 2);
-      else support = compactTriad(chord, 3);
-    } else {
-      support = textureRoll < 0.5 ? guideToneDyad(chord, 3, '37') : guideToneDyad(chord, 3, '73');
-    }
-
-    support = filterSupport(pitch, support);
-
-    if (support.length === 2 && rng() < 0.15) {
-      const ext = compact4(chord, 3).filter(p => p < pitch && p >= GUITAR_LOW);
-      const cand = [...support, ...ext].filter((v, i, a) => a.indexOf(v) === i).slice(0, 3);
-      if (isPlayableGrip([pitch, ...cand])) support = cand;
-    }
-
-    let finalPitches = [pitch, ...support].sort((a, b) => a - b);
-    if (!isPlayableGrip(finalPitches) && support.length > 0) {
-      finalPitches = [pitch, ...support.slice(0, 1)].sort((a, b) => a - b);
-    }
-
-    const role = finalPitches.length >= 3 ? 'triad' : finalPitches.length === 2 ? 'shell' : 'melody';
     events.push({
-      pitches: finalPitches,
+      pitches: [pitch],
       duration,
       beatPosition: offset,
       staff: 1,
       voice: 1,
-      role: role as 'melody' | 'shell' | 'triad' | 'voicing' | 'bass' | 'punctuation',
+      role: 'melody',
     });
+    singleNoteRun++;
   }
 
-  // Fill any uncovered required chord beats with shell stabs (no melody)
-  for (const beat of requiredChordBeats) {
-    if (coveredChordBeats.has(beat)) continue;
-    const chord = getChordAtBeat(harmony, beat);
-    if (!chord) continue;
-    const shell = shellVoicing(chord, 2).filter(p => p >= GUITAR_LOW && p <= GUITAR_HIGH);
-    if (shell.length >= 2 && isPlayableGrip(shell)) {
-      events.push({
-        pitches: shell,
-        duration: 0.5,
-        beatPosition: beat,
-        staff: 1,
-        voice: 1,
-        role: 'shell',
-      });
+  for (let bar = 0; bar < bars; bar++) {
+    let phraseIdx = 0;
+    for (let p = 0; p < phraseStarts.length; p++) {
+      const len = phraseLengths[p] ?? 4;
+      if (bar >= phraseStarts[p] && bar < phraseStarts[p] + len) {
+        phraseIdx = p;
+        break;
+      }
+    }
+    const phraseStart = phraseStarts[phraseIdx] ?? 0;
+    const phraseLen = phraseLengths[phraseIdx] ?? 4;
+    const barInPhrase = bar - phraseStart;
+    const chordBeats = getChordBeatsForBar(pattern, barInPhrase, phraseLen, BEATS_PER_BAR);
+
+    const hasChordInBar = events.some(
+      e => e.pitches.length >= 2 && Math.floor(e.beatPosition / BEATS_PER_BAR) === bar
+    );
+    if (!hasChordInBar && chordBeats.length > 0) {
+      const beat = chordBeats[0];
+      const offset = bar * BEATS_PER_BAR + beat;
+      const chord = getChordAtBeat(harmony, offset);
+      if (chord) {
+        const voicing = chooseNextVoicing(chord, voiceContext, ['shell', 'guideTone']);
+        if (voicing) {
+          voiceContext.lastVoicing = voicing;
+          voiceContext.lastTopPitch = Math.max(...voicing.pitches);
+          events.push({
+            pitches: voicing.pitches,
+            duration: 0.5,
+            beatPosition: offset,
+            staff: 1,
+            voice: 1,
+            role: 'shell',
+          });
+        }
+      }
     }
   }
 

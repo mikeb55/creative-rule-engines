@@ -12,6 +12,7 @@ interface TargetOptions {
   monk?: MonkControls;
   global?: GlobalControls;
   engine?: string;
+  revisionSeed?: number;
 }
 
 export function translateToTarget(
@@ -28,6 +29,7 @@ export function translateToTarget(
     const texture = guitarEventsToTexture(notes, harmony, {
       monkMode,
       barryMode,
+      revisionSeed: options.revisionSeed,
     });
     return texture.map(t => ({
       voice: t.voice,

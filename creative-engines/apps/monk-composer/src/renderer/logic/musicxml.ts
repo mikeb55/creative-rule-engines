@@ -152,7 +152,8 @@ export function compositionToMusicXML(
   );
 }
 
-/** Group notes into chords (same offset+duration, and voice for piano) */
+/** Group notes into chords (same offset+duration, and voice for piano).
+ * Preserves simultaneity: stacked notes use <chord/> so they represent the same beat event. */
 function groupNotesForChords(
   notes: (Note & { offset: number; _voice?: number })[],
   byVoice = false
@@ -265,28 +266,40 @@ function buildBigBandXml(
   }
 
   const partList = BIG_BAND_TEMPLATE.map(p =>
-    `<score-part id="${p.id}"><part-name>${escapeXml(p.name)}</part-name><part-abbreviation>${escapeXml(p.abbreviation)}</part-abbreviation></score-part>`
+    `<score-part id="${p.id}"><part-name>${escapeXml(p.name)}</part-name></score-part>`
   ).join('');
   const partXmls: string[] = [];
 
   for (let i = 0; i < 6; i++) {
     const id = partIds[i];
-    const clef = BIG_BAND_TEMPLATE[i].clef === 'bass'
+    const partDef = BIG_BAND_TEMPLATE[i];
+    const isPiano = partDef?.staves === 2;
+    const clef = partDef?.clef === 'bass'
       ? '<clef><sign>F</sign><line>4</line></clef>'
       : '<clef><sign>G</sign><line>2</line></clef>';
+    const stavesAttr = isPiano ? '<staves>2</staves>' : '';
+    const clefAttrs = isPiano
+      ? `<clef number="1"><sign>G</sign><line>2</line></clef><clef number="2"><sign>F</sign><line>4</line></clef>`
+      : clef;
     const mMap = partMeasureMap[id] ?? new Map();
     const measures: string[] = [];
     for (let m = 0; m <= maxMeasure; m++) {
-      const msrNotes = (mMap.get(m) ?? []).sort((a, b) => a.offset - b.offset);
+      const msrNotes = (mMap.get(m) ?? []).sort((a, b) => {
+        if (a.offset !== b.offset) return a.offset - b.offset;
+        return ((a as { _voice?: number })._voice ?? 1) - ((b as { _voice?: number })._voice ?? 1);
+      });
       const attrs = m === 0
-        ? `<attributes><divisions>${divs}</divisions><key><fifths>${fifths}</fifths></key><time><beats>${beats}</beats><beat-type>${beatType}</beat-type></time>${clef}</attributes>`
+        ? `<attributes><divisions>${divs}</divisions><key><fifths>${fifths}</fifths></key><time><beats>${beats}</beats><beat-type>${beatType}</beat-type></time>${stavesAttr}${clefAttrs}</attributes>`
         : '';
-      const groups = groupNotesForChords(msrNotes);
-      const notesXml = groups.flatMap(g =>
-        g.map((n, j) => noteToXml(n, divs, '      ', j > 0))
-      ).join('\n');
+      const groups = groupNotesForChords(msrNotes as (Note & { offset: number; _voice?: number })[], isPiano);
+      const notesXml = groups.flatMap(g => {
+        const voice = isPiano ? (g[0] as { _voice?: number })._voice ?? 1 : undefined;
+        const staffFor = (n: Note & { _voice?: number }) =>
+          isPiano && !n.rest ? ((n._voice ?? 1) as number) : undefined;
+        return g.map((n, j) => noteToXml(n, divs, '      ', j > 0, staffFor(n as Note & { _voice?: number }), voice));
+      }).join('\n');
       const restXml = msrNotes.length === 0
-        ? noteToXml({ pitch: 60, duration: beatsPerMeasure, rest: true }, divs)
+        ? noteToXml({ pitch: 60, duration: beatsPerMeasure, rest: true }, divs, '      ', false, isPiano ? 1 : undefined, isPiano ? 1 : undefined)
         : '';
       measures.push(`    <measure number="${m + 1}">\n${attrs ? '      ' + attrs + '\n' : ''}${notesXml || restXml}\n    </measure>`);
     }

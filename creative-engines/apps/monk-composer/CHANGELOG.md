@@ -2,6 +2,46 @@
 
 ## [Unreleased]
 
+### 2025-03-11 — Replace Guitar Stacking with Fretboard-Aware Voicing System (v0.8.0)
+
+- **Fretboard-aware voicing system** — Guitar generator no longer uses piano-style pitch stacking. All chord generation comes from predefined voicing families mapped to fretboard shapes.
+
+- **Guitar voicing dictionary** — `guitarVoicingDictionary.ts` defines playable families: shell (6-4-3, 5-4-3, 5-3-2), triad (1-2-3, 2-3-4, 3-4-5), drop-2 (1-2-3-4, 2-3-4-5), quartal (1-2-3, 2-3-4), guide-tone dyads. Each entry includes string set, interval structure, root placement, max fret span (5).
+
+- **Fretboard mapper** — `fretboardMapper.ts` maps harmonic targets to dictionary voicings, enforces max stretch (5 frets), adjacent-string shapes, rejects impossible grips.
+
+- **Voice-leading engine** — `guitarVoiceLeading.ts` chooses next voicing by smallest fret displacement, common tones, minimal top-voice jump.
+
+- **Rhythmic comping patterns** — `guitarRhythmTemplates.ts` defines patterns A–D (beat 2 & 4, off-beat stabs, chord + line, shell comping). One template per phrase; no random chord placement.
+
+- **Hard guitar validator** — Fails if chord shapes not in dictionary, fret span > 5, >70% monophonic, random chord placement, no recurring voicing family.
+
+- **MusicXML export** — Chord simultaneity preserved via `<chord/>` tags; export validator rejects if simultaneity collapses.
+
+- **Revision loop** — On guitar idiom fail, retries up to 5 times with different voicing family and rhythm template.
+
+- **Audit panel** — Guitar shows grip validity, fret span (avg/max), chord event %, validation result.
+
+- **Outputs** — `barry-guitar-fixed.musicxml`, `monk-guitar-fixed.musicxml` generated with playable grips, consistent comp rhythm, realistic voice-leading, mixed texture.
+
+### 2025-03-11 — Replace Big Band with Reduced 6-Staff Sketch Template (v0.7.0)
+
+- **Replaced big band template** — `bigBandTemplate.ts` now defines a reduced 6-staff sketch: Trumpet, Alto Sax, Tenor Sax, Trombone, Piano, Bass. Exact part names per spec. Piano includes `<staves>2</staves>`, RH=voice 1, LH=voice 2.
+
+- **Hierarchical generation model** — Big band no longer generates six independent melodic lines. Pipeline: motif → harmonic state → melody (Alto Sax) → counterline (Tenor Sax) → harmonic pads (Trombone) → comping (Piano) → bass (Bass). Trumpet: punctuation hits, upper harmony reinforcement.
+
+- **Section role logic** — Fixed roles per staff: Alto = primary melody; Tenor = counterline/inner harmony; Trombone = sustained pads; Piano = comping; Bass = root motion, walking fragments. No staff generates independent melody unless its role allows it.
+
+- **Section density rules** — Opening: melody + bass only. Development: counterline appears, piano comping increases. Full texture: trumpet hits, trombone pads. Release: reduced texture. Rejects generation if all six staves play constantly.
+
+- **Validation rules** — Big band fails if: only one staff has notes; ensemble simultaneity trivial; no counterline; no pad layer; no bass line; all parts duplicate same melody. Requires melody, counterline, harmonic support, and rhythm section layers.
+
+- **MusicXML export** — score-partwise version 3.0. Part list: Trumpet, Alto Sax, Tenor Sax, Trombone, Piano, Bass. Piano exports with 2 staves. Canonical exporter for GUI, script, and chosen-directory export.
+
+- **Generation script** — `npx tsx scripts/generate-bigband-sketch.ts` produces `barry-bigband-sketch.musicxml` and `monk-bigband-sketch.musicxml`. Validates 6 parts, piano 2 staves, bass present, counterline present, simultaneity > 2.
+
+- **Audit panel** — Big band shows: part count, staff count, simultaneous voices, melody carrier, counterline presence, pad layer presence, bass activity ratio, GCE and whether capped.
+
 ### 2025-03-11 — Barry/Monk Guitar & Piano Chord Generation Fix (v0.6.0)
 
 - **Internal chord-event model** — New `musicEvents.ts` with `MusicEvent` (pitches[], duration, beatPosition, staff, voice, role). Stops flattening harmony into note streams; supports genuine simultaneity.
