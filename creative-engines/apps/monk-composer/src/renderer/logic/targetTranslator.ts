@@ -1,7 +1,8 @@
 import type { Note, Chord, BarryControls, MonkControls, GlobalControls } from './types';
 import { generateQuartet } from './quartetEngine';
-import { applyGuitarVoicing } from './guitarVoicingEngine';
-import { applyPianoVoicing } from './pianoVoicingEngine';
+import { applyGuitarIdiom } from './guitarIdiomRules';
+import { applyPianoIdiom } from './pianoIdiomRules';
+import { applyBigBandIdiom } from './bigBandIdiomRules';
 
 interface TargetOptions {
   playabilityStrictness: number;
@@ -10,6 +11,7 @@ interface TargetOptions {
   barry?: BarryControls;
   monk?: MonkControls;
   global?: GlobalControls;
+  engine?: string;
 }
 
 export function translateToTarget(
@@ -19,16 +21,19 @@ export function translateToTarget(
 ): { voice: number; notes: Note[] }[] {
   const { notes } = layer;
   const harmony = options.harmony ?? [];
+  const monkMode = options.engine === 'monk' || options.engine === 'barry_monk';
+  const barryMode = options.engine === 'barry' || options.engine === 'barry_monk';
 
   if (target === 'guitar') {
-    const harmonized = applyGuitarVoicing(notes, harmony, {
-      harmonizeRatio: 0.5,
-      keyCenter: options.keyCenter ?? 'C',
+    const idiomNotes = applyGuitarIdiom(notes, harmony, {
+      monkMode,
+      barryMode,
+      harmonizeRatio: barryMode ? 0.5 : 0.4,
     });
     return [
       {
         voice: 1,
-        notes: harmonized.map(n => ({
+        notes: idiomNotes.map(n => ({
           ...n,
           pitch: n.rest ? 0 : Math.min(84, Math.max(40, n.pitch)),
         })),
@@ -37,18 +42,19 @@ export function translateToTarget(
   }
 
   if (target === 'piano') {
-    const harmonized = applyPianoVoicing(notes, harmony, {
-      harmonizeRatio: 0.5,
-      keyCenter: options.keyCenter ?? 'C',
+    const bars = options.global?.bars ?? (Math.ceil((notes[notes.length - 1]?.offset ?? 0) / 4) || 8);
+    const { rightHand, leftHand } = applyPianoIdiom(notes, harmony, {
+      bars,
+      monkMode,
+      barryMode,
+    });
+    const clamp = (n: Note) => ({
+      ...n,
+      pitch: n.rest ? 0 : Math.min(88, Math.max(21, n.pitch)),
     });
     return [
-      {
-        voice: 1,
-        notes: harmonized.map(n => ({
-          ...n,
-          pitch: n.rest ? 0 : Math.min(88, Math.max(21, n.pitch)),
-        })),
-      },
+      { voice: 1, notes: rightHand.map(clamp) },
+      { voice: 2, notes: leftHand.map(clamp) },
     ];
   }
 
@@ -78,19 +84,17 @@ export function translateToTarget(
   }
 
   if (target === 'big_band') {
-    const harmonized = applyPianoVoicing(notes, harmony, {
-      harmonizeRatio: 0.5,
-      keyCenter: options.keyCenter ?? 'C',
+    const bars = options.global?.bars ?? (Math.ceil((notes[notes.length - 1]?.offset ?? 0) / 4) || 8);
+    const parts = applyBigBandIdiom(notes, harmony, {
+      bars,
+      monkMode,
+      barryMode,
     });
-    return [
-      {
-        voice: 1,
-        notes: harmonized.map(n => ({
-          ...n,
-          pitch: n.rest ? 0 : Math.min(88, Math.max(21, n.pitch)),
-        })),
-      },
-    ];
+    const clamp = (n: Note) => ({
+      ...n,
+      pitch: n.rest ? 0 : Math.min(88, Math.max(21, n.pitch)),
+    });
+    return parts.map(p => ({ voice: p.voice, notes: p.notes.map(clamp) }));
   }
 
   return [layer];

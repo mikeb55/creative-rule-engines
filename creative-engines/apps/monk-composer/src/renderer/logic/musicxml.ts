@@ -1,4 +1,5 @@
 import type { Composition, Note } from './types';
+import { BIG_BAND_TEMPLATE } from './bigBandTemplate';
 
 const PITCH_STEPS = ['C', 'D', 'E', 'F', 'G', 'A', 'B'];
 
@@ -110,7 +111,26 @@ export function compositionToMusicXML(
     );
   }
 
-  const useGrandStaff = target === 'piano' || target === 'big_band';
+  if (target === 'big_band' && comp.texture?.length === 6) {
+    const partNoteArrays = comp.texture.map(t => {
+      let run = 0;
+      return (t.notes ?? []).map(n => {
+        const off = n.offset ?? run;
+        run = off + (n.duration ?? 0.25);
+        return { ...n, offset: off } as Note & { offset: number };
+      });
+    });
+    let maxMeasureBB = 0;
+    for (const arr of partNoteArrays) {
+      for (const n of arr) {
+        const m = Math.floor(n.offset / beats);
+        if (m > maxMeasureBB) maxMeasureBB = m;
+      }
+    }
+    return buildBigBandXml(partNoteArrays, maxMeasureBB, title, divs, fifths, beats, beatType, beats);
+  }
+
+  const useGrandStaff = target === 'piano';
   return buildSinglePartXml(
     notes, measureMap, measureIndices, maxMeasure,
     title, divs, fifths, beats, beatType, beatsPerMeasure,
@@ -164,9 +184,12 @@ function buildSinglePartXml(
       : '';
     const groups = groupNotesForChords(msrNotes);
     const notesXml = groups.flatMap(g => {
+      // Grand staff: assign staff per note by pitch (bass < middle C, treble >= middle C)
+      const staffFor = (n: Note & { offset: number }) =>
+        useGrandStaff && !n.rest ? (n.pitch >= MIDDLE_C ? 1 : 2) : undefined;
       const topPitch = g.length > 0 ? Math.max(...g.map(n => n.pitch ?? 0)) : 60;
-      const staff = useGrandStaff ? (topPitch >= MIDDLE_C ? 1 : 2) : undefined;
-      return g.map((n, i) => noteToXml(n, divs, '      ', i > 0, staff));
+      const defaultStaff = useGrandStaff ? (topPitch >= MIDDLE_C ? 1 : 2) : undefined;
+      return g.map((n, i) => noteToXml(n, divs, '      ', i > 0, staffFor(n) ?? defaultStaff));
     }).join('\n');
     const restXml = msrNotes.length === 0
       ? noteToXml({ pitch: 60, duration: beatsPerMeasure, rest: true }, divs)
@@ -181,6 +204,68 @@ function buildSinglePartXml(
   <part id="P1">
 ${measures.join('\n')}
   </part>
+</score-partwise>
+`;
+}
+
+function buildBigBandXml(
+  partNoteArrays: (Note & { offset: number })[][],
+  maxMeasure: number,
+  title: string,
+  divs: number,
+  fifths: number,
+  beats: number,
+  beatType: number,
+  beatsPerMeasure: number
+): string {
+  const partMeasureMap: Record<string, Map<number, (Note & { offset: number })[]>> = {};
+  const partIds = ['P1', 'P2', 'P3', 'P4', 'P5', 'P6'];
+  for (let i = 0; i < 6; i++) {
+    const pnotes = partNoteArrays[i] ?? [];
+    const m = new Map<number, (Note & { offset: number })[]>();
+    for (const n of pnotes) {
+      const mi = Math.floor(n.offset / beatsPerMeasure);
+      if (!m.has(mi)) m.set(mi, []);
+      m.get(mi)!.push(n);
+    }
+    partMeasureMap[partIds[i]] = m;
+  }
+
+  const partList = BIG_BAND_TEMPLATE.map(p =>
+    `<score-part id="${p.id}"><part-name>${escapeXml(p.name)}</part-name></score-part>`
+  ).join('');
+  const partXmls: string[] = [];
+
+  for (let i = 0; i < 6; i++) {
+    const id = partIds[i];
+    const clef = BIG_BAND_TEMPLATE[i].clef === 'bass'
+      ? '<clef><sign>F</sign><line>4</line></clef>'
+      : '<clef><sign>G</sign><line>2</line></clef>';
+    const mMap = partMeasureMap[id] ?? new Map();
+    const measures: string[] = [];
+    for (let m = 0; m <= maxMeasure; m++) {
+      const msrNotes = (mMap.get(m) ?? []).sort((a, b) => a.offset - b.offset);
+      const attrs = m === 0
+        ? `<attributes><divisions>${divs}</divisions><key><fifths>${fifths}</fifths></key><time><beats>${beats}</beats><beat-type>${beatType}</beat-type></time>${clef}</attributes>`
+        : '';
+      const groups = groupNotesForChords(msrNotes);
+      const notesXml = groups.flatMap(g =>
+        g.map((n, j) => noteToXml(n, divs, '      ', j > 0))
+      ).join('\n');
+      const restXml = msrNotes.length === 0
+        ? noteToXml({ pitch: 60, duration: beatsPerMeasure, rest: true }, divs)
+        : '';
+      measures.push(`    <measure number="${m + 1}">\n${attrs ? '      ' + attrs + '\n' : ''}${notesXml || restXml}\n    </measure>`);
+    }
+    partXmls.push(`  <part id="${id}">\n${measures.join('\n')}\n  </part>`);
+  }
+
+  return `<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE score-partwise PUBLIC "-//Recordare//DTD MusicXML 4.0 Partwise//EN" "http://www.musicxml.org/dtds/partwise.dtd">
+<score-partwise version="4.0">
+  <work><work-title>${escapeXml(title)}</work-title></work>
+  <part-list>${partList}</part-list>
+${partXmls.join('\n')}
 </score-partwise>
 `;
 }

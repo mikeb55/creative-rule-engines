@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import type { GCEScores, Warnings, Composition, OutputTarget } from '../logic/types';
+import { runSelfTest } from '../logic/selfTest';
 
 interface AuditPanelProps {
   scores: GCEScores | null;
@@ -41,6 +42,11 @@ export function AuditPanel({ scores, warnings, revisionCount, composition, instr
   const [debugOpen, setDebugOpen] = useState(false);
   const isQuartet = instrumentTarget === 'string_quartet';
   const diag = composition?.quartetDiagnostics;
+  const chordalTargets: OutputTarget[] = ['guitar', 'piano', 'big_band'];
+  const isChordal = instrumentTarget && chordalTargets.includes(instrumentTarget);
+  const selfTestReport = composition && isChordal && scores
+    ? runSelfTest(composition, instrumentTarget, revisionCount, false)
+    : null;
 
   return (
     <div className="panel">
@@ -58,6 +64,16 @@ export function AuditPanel({ scores, warnings, revisionCount, composition, instr
           <p className="muted" style={{ marginTop: 12 }}>
             Revisions: {revisionCount}
           </p>
+          {selfTestReport && (
+            <div style={{ marginTop: 12, padding: 10, background: 'rgba(0,0,0,0.15)', borderRadius: 4, fontSize: '0.8rem' }}>
+              <h4 style={{ margin: '0 0 8px', fontSize: '0.85rem' }}>Idiom Status</h4>
+              <div className="flex-between" style={{ marginBottom: 4 }}><span className="muted">Chord events</span><span>{selfTestReport.chordEventCount}</span></div>
+              <div className="flex-between" style={{ marginBottom: 4 }}><span className="muted">Motif recurrences</span><span>{selfTestReport.motifRecurrenceCount}</span></div>
+              <div className="flex-between" style={{ marginBottom: 4 }}><span className="muted">Target idiom</span><span className={selfTestReport.targetIdiomPass ? 'success-text' : ''}>{selfTestReport.targetIdiomPass ? 'PASS' : 'FAIL'}</span></div>
+              <div className="flex-between" style={{ marginBottom: 4 }}><span className="muted">Export verified</span><span>{selfTestReport.exportVerified ? 'Yes' : '—'}</span></div>
+              {selfTestReport.latestFailingTest && <div className="muted" style={{ marginTop: 4 }}>Failing: {selfTestReport.latestFailingTest}</div>}
+            </div>
+          )}
         </>
       ) : (
         <p className="muted">Generate a draft to see scores.</p>

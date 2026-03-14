@@ -18,6 +18,9 @@ import {
 } from './monkRules';
 import { translateToTarget } from './targetTranslator';
 import { generateQuartet } from './quartetEngine';
+import { generateSeedMotif, expandMotifWithVariations } from './motifEngine';
+
+const rng = () => Math.random();
 
 export function generateDraft(
   engine: EngineChoice,
@@ -30,11 +33,19 @@ export function generateDraft(
   const chords = generateIIVProgression(global.keyCenter, bars);
   const harmony = addDiminishedPassing(chords, barry.diminishedPassingIntensity);
 
-  let motif = generateBebopLine(harmony, bars, {
-    bebopDensity: barry.bebopDensity,
-    guideToneStrength: barry.guideToneStrength,
-    enclosureUsage: barry.enclosureUsage,
-  });
+  const chordalTargets: OutputTarget[] = ['guitar', 'piano', 'big_band'];
+  let motif: Note[];
+
+  if (chordalTargets.includes(target)) {
+    const seed = generateSeedMotif(harmony, global.keyCenter, rng);
+    motif = expandMotifWithVariations(seed, harmony, bars, rng);
+  } else {
+    motif = generateBebopLine(harmony, bars, {
+      bebopDensity: barry.bebopDensity,
+      guideToneStrength: barry.guideToneStrength,
+      enclosureUsage: barry.enclosureUsage,
+    });
+  }
 
   if (engine === 'monk' || engine === 'barry_monk') {
     motif = applyAngularity(motif, monk.angularity);
@@ -108,6 +119,8 @@ export function generateDraft(
         playabilityStrictness: global.playabilityStrictness,
         harmony,
         keyCenter: global.keyCenter,
+        global,
+        engine,
       }
     );
   }

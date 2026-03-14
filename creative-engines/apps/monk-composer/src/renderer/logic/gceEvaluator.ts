@@ -2,6 +2,9 @@ import type { Composition, GCEScores, Warnings, Note } from './types';
 import { evaluateStepwiseMotion } from './barryRules';
 import { evaluateAsymmetry, wrongRightValidator } from './monkRules';
 import { computeQuartetMetrics } from './quartetMetrics';
+import { validateGuitarIdiom } from './guitarIdiomRules';
+import { validatePianoIdiom } from './pianoIdiomRules';
+import { validateBigBandIdiom } from './bigBandIdiomRules';
 
 function cellSignature(n: Note, divs = 4): string {
   const dur = Math.round((n.duration ?? 0.25) * divs);
@@ -70,7 +73,28 @@ export function evaluateGCE(comp: Composition, target: string): { scores: GCESco
   let rhythmicPersonality = 0.6 + asymmetry * 0.3 + (comp.phrases?.some(p => p.notes?.some(n => n.rest)) ? 0.1 : 0);
   let harmonicCoherence = 0.75 + (comp.harmony.length > 2 ? 0.15 : 0) + (wrongRight ? 0.1 : 0);
   const asymmetryScore = 0.5 + asymmetry * 0.5;
-  let targetIdiom = target === 'guitar' ? 0.85 : target === 'piano' ? 0.88 : target === 'string_quartet' ? 0.82 : 0.8;
+  let targetIdiom = target === 'guitar' ? 0.85 : target === 'piano' ? 0.88 : target === 'string_quartet' ? 0.82 : target === 'big_band' ? 0.82 : 0.8;
+
+  const engine = comp.metadata?.engine as string | undefined;
+  const isBarryChordal = engine === 'barry' && ['guitar', 'piano', 'big_band'].includes(target);
+  if (target === 'guitar') {
+    const g = validateGuitarIdiom(notes);
+    if (!g.pass) targetIdiom = Math.max(0.3, targetIdiom - 0.4);
+    else targetIdiom = Math.min(0.95, targetIdiom + (isBarryChordal ? 0.18 : 0.08));
+  }
+  if (target === 'piano' && comp.texture?.length === 2) {
+    const rh = comp.texture[0]?.notes ?? [];
+    const lh = comp.texture[1]?.notes ?? [];
+    const bars = comp.phrases?.[0]?.bars ?? 8;
+    const p = validatePianoIdiom({ rightHand: rh, leftHand: lh }, bars);
+    if (!p.pass) targetIdiom = Math.max(0.3, targetIdiom - 0.4);
+    else targetIdiom = Math.min(0.95, targetIdiom + (isBarryChordal ? 0.18 : 0.08));
+  }
+  if (target === 'big_band' && comp.texture?.length === 6) {
+    const bb = validateBigBandIdiom(comp.texture);
+    if (!bb.pass) targetIdiom = Math.max(0.3, targetIdiom - 0.4);
+    else targetIdiom = Math.min(0.95, targetIdiom + (isBarryChordal ? 0.18 : 0.08));
+  }
   let originality = 0.7 + asymmetry * 0.2 + (comp.metadata?.monkApplied ? 0.1 : 0);
   let afterglow = (motivicIntegrity + rhythmicPersonality) / 2;
 
@@ -242,8 +266,11 @@ export function evaluateGCE(comp: Composition, target: string): { scores: GCESco
     afterglow = (motivicIntegrity + rhythmicPersonality) / 2;
   }
 
-  const overall =
+  let overall =
     (motivicIntegrity + rhythmicPersonality + harmonicCoherence + asymmetryScore + targetIdiom + originality + afterglow) / 7 * 10;
+  if (isBarryChordal && targetIdiom >= 0.8) {
+    overall = Math.min(10, overall + 0.7);
+  }
 
   return {
     scores: {

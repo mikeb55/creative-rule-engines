@@ -2,6 +2,22 @@
 
 ## [Unreleased]
 
+### 2025-03-11 — Target-Specific Idiom Rules and Template-Based Big Band (v0.5.0)
+
+- **Target-specific idiom rule sets** — Guitar, piano, and big band now use dedicated idiom modules (`guitarIdiomRules.ts`, `pianoIdiomRules.ts`, `bigBandIdiomRules.ts`) instead of generic voicing engines. Each target enforces idiomatic constraints: compact chord vocabulary, string-group awareness (guitar); two-hand independence, phrase breathing (piano); section roles, counterlines, density arc (big band).
+
+- **Template-based big band score generation** — Big band exports use a normalized 6-part template (Trumpet 1, Alto Sax 1, Tenor Sax 1, Trombone 1, Piano, Bass) with correct part order, names, and transpositions. MusicXML export produces proper multi-part scores instead of piano grand staff.
+
+- **Permanent self-test harness** — `selfTest.ts` runs automatically after generation and revision. Tests: chord density, monophonic fallback, guitar/piano/big band idiom, motif recurrence, phrase shape, rhythmic life, export verification, usability score. Hard pass: GCE ≥ 9.0, idiom pass, export verified.
+
+- **Export verification** — `exportValidators.ts` validates exported MusicXML: correct chord tags, simultaneity preserved, part count, part names. Rejects export if validation fails.
+
+- **Motif-first generation** — Chordal targets (guitar, piano, big band) use motif-first pipeline: seed motif → variation → harmonic interpretation → target idiom translation. Pipeline: `motifEngine.ts` → `targetTranslator` → idiom rules.
+
+- **Idiom Status UI** — Audit panel shows chord event count, motif recurrences, target idiom pass/fail, export verification status for chordal targets.
+
+- **Generation script** — `npm run generate-idiomatic` produces all 6 idiomatic outputs in order: guitar (Barry, Monk), piano (Barry, Monk), big band (Barry, Monk). Outputs: `outputs/barry-guitar-idiomatic.musicxml`, `outputs/monk-guitar-idiomatic.musicxml`, etc.
+
 ### 2025-03-11 — Fix Unresponsive Buttons (v0.4.4)
 
 - **Fixed Raise to GCE ≥ 9.0** — Now runs revision loop, updates composition/scores/warnings, and shows status feedback. Disabled when no composition exists.

@@ -3,9 +3,10 @@ import { evaluateGCE } from './gceEvaluator';
 import { applyAngularity, addStrategicSilence } from './monkRules';
 import { addDiminishedPassing } from './barryRules';
 import { generateQuartet } from './quartetEngine';
+import { generateDraft } from './generator';
 import type { BarryControls, MonkControls, GlobalControls } from './types';
 
-const MAX_ITERATIONS = 15;
+const MAX_ITERATIONS = 25;
 
 export interface RevisionResult {
   composition: Composition;
@@ -154,6 +155,10 @@ export function runRevisionLoop(
         }
         comp.metadata = { ...comp.metadata, revisionCount: revisionCount + 1 };
       }
+    } else if (['guitar', 'piano', 'big_band'].includes(target) && barry && monk && global) {
+      const engine = (opts.engine ?? comp.metadata?.engine ?? 'barry') as 'barry' | 'monk' | 'barry_monk';
+      comp = generateDraft(engine, target as 'guitar' | 'piano' | 'big_band', barry, monk, global);
+      comp.metadata = { ...comp.metadata, revisionCount: revisionCount + 1 };
     } else {
       const weakest =
         scores.motivicIntegrity < scores.rhythmicPersonality && scores.motivicIntegrity < scores.harmonicCoherence
@@ -165,13 +170,13 @@ export function runRevisionLoop(
         comp = {
           ...comp,
           motif: applyAngularity(comp.motif, 0.3),
-          texture: comp.texture.map(t => ({ ...t, notes: applyAngularity(t.notes, 0.2) })),
+          texture: comp.texture?.map(t => ({ ...t, notes: applyAngularity(t.notes, 0.2) })) ?? comp.texture,
         };
       } else if (weakest === 'rhythmic') {
         comp = {
           ...comp,
           motif: addStrategicSilence(comp.motif, 0.2),
-          texture: comp.texture.map(t => ({ ...t, notes: addStrategicSilence(t.notes, 0.2) })),
+          texture: comp.texture?.map(t => ({ ...t, notes: addStrategicSilence(t.notes, 0.2) })) ?? comp.texture,
         };
       } else {
         comp = {
