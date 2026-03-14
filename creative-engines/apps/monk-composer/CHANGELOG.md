@@ -2,6 +2,36 @@
 
 ## [Unreleased]
 
+### 2025-03-11 — Fix Unresponsive Buttons (v0.4.4)
+
+- **Fixed Raise to GCE ≥ 9.0** — Now runs revision loop, updates composition/scores/warnings, and shows status feedback. Disabled when no composition exists.
+
+- **Fixed Regenerate Weakest Section** — Calls revision loop; shows status. Disabled when no composition.
+
+- **Fixed Save Preset** — Uses file save dialog instead of prompt. Saves preset JSON to user-chosen location. Shows success/error feedback. Disabled when not running as desktop app.
+
+- **Fixed Load Preset** — Uses file open dialog to pick preset JSON. Populates UI from loaded preset. Shows success/error feedback. Disabled when not running as desktop app.
+
+- **Added status feedback area** — Visible messages for: Preset saved, Preset loaded, Revision loop complete, No composition available, Error messages. Messages auto-dismiss after 5 seconds.
+
+- **Added debug logging** — In development mode, logs button clicks and handler results.
+
+### 2025-03-11 — Readable Piano/Big Band Notation (v0.4.3)
+
+- **Reduced harmonization density** — Piano and big band now harmonize every 4th note (instead of every 2nd), producing readable scores instead of dense, unplayable notation.
+
+- **Raised minimum bass pitch** — Support tones no longer go below C2 (MIDI 36), avoiding sub-bass (A0, C1) that caused extreme ledger lines and red error markers in Sibelius.
+
+- **Grand staff for piano and big band** — Exports now use treble + bass clef. Notes above middle C go on the treble staff; notes below go on the bass staff. Standard piano layout.
+
+- **Prefer dyads/shells over triads** — Fewer notes per chord for cleaner notation.
+
+### 2025-03-11 — Export Matches Selected Instrument (v0.4.2)
+
+- **Work title uses user filename** — The score title in the exported MusicXML now uses the filename you enter (e.g. `pianoreduc100`) instead of always "Monk Composer - guitar".
+
+- **Chordal targets always regenerate at export** — For Guitar, Piano Reduction, and Big Band Sketch, export now regenerates the composition with the currently selected instrument before writing. This fixes the bug where every export was guitar and monophonic regardless of selection.
+
 ### 2025-03-11 — Unified GUI and Script Chord Export
 
 - **Unified GUI and script MusicXML export path** — Both GUI export and script exports (`test:voicing`, `generate-voicing-demo`) now call the same `compositionToMusicXML` function. One canonical exporter for chord-capable output.

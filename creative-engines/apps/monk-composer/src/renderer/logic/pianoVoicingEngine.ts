@@ -46,6 +46,8 @@ function getChordAtBeat(harmony: Chord[], offset: number): Chord | undefined {
 
 const PIANO_LOW = 21;
 const PIANO_HIGH = 88;
+/** Minimum pitch for support tones - avoid sub-bass that clutters notation */
+const PIANO_SUPPORT_LOW = 36; // C2
 
 function supportTonesForMelody(
   melodyPitch: number,
@@ -56,10 +58,10 @@ function supportTonesForMelody(
   const refOct = Math.floor(melodyPitch / 12);
   const candidates: number[] = [];
 
-  for (let oct = refOct - 3; oct <= refOct; oct++) {
+  for (let oct = Math.max(2, refOct - 2); oct <= refOct; oct++) {
     for (const pc of pcs) {
       const p = oct * 12 + pc;
-      if (p < melodyPitch && p >= PIANO_LOW && p <= PIANO_HIGH) {
+      if (p < melodyPitch && p >= PIANO_SUPPORT_LOW && p <= PIANO_HIGH) {
         candidates.push(p);
       }
     }
@@ -109,10 +111,9 @@ export interface PianoVoicingOptions {
 export function applyPianoVoicing(
   melody: Note[],
   harmony: Chord[],
-  options: PianoVoicingOptions = {}
+  _options: PianoVoicingOptions = {}
 ): Note[] {
-  const harmonizeRatio = Math.min(0.6, Math.max(0.4, options.harmonizeRatio ?? 0.5));
-  const voicingTypes: ('dyad' | 'shell' | 'triad')[] = ['dyad', 'shell', 'triad'];
+  const voicingTypes: ('dyad' | 'shell' | 'triad')[] = ['dyad', 'shell', 'dyad', 'shell'];
   const result: Note[] = [];
 
   for (let i = 0; i < melody.length; i++) {
@@ -127,7 +128,7 @@ export function applyPianoVoicing(
     }
 
     const chord = getChordAtBeat(harmony, offset);
-    const shouldHarmonize = chord && (i % 2 === 0 || (i % 4 === 1 && Math.random() < 0.5));
+    const shouldHarmonize = chord && (i % 4 === 0 || (i % 8 === 2 && Math.random() < 0.4));
 
     if (!shouldHarmonize || !chord) {
       result.push({ pitch, duration, offset, rest: false });
@@ -139,7 +140,7 @@ export function applyPianoVoicing(
 
     if (support.length === 0) {
       const fallback = pitch - 7;
-      if (fallback >= PIANO_LOW && fallback < pitch) support = [fallback];
+      if (fallback >= PIANO_SUPPORT_LOW && fallback < pitch) support = [fallback];
     }
 
     result.push({ pitch, duration, offset, rest: false });

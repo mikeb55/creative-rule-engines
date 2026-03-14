@@ -48,8 +48,14 @@ export function App() {
   const [isGenerating, setIsGenerating] = useState(false);
   const [engines, setEngines] = useState<string[]>([]);
   const [electronAPIAvailable, setElectronAPIAvailable] = useState<boolean | null>(null);
+  const [statusMessage, setStatusMessage] = useState<{ text: string; type: 'success' | 'error' | 'info' } | null>(null);
 
   const engine = deriveEngine(barryEnabled, monkEnabled);
+
+  const setStatus = useCallback((text: string, type: 'success' | 'error' | 'info' = 'info') => {
+    setStatusMessage({ text, type });
+    setTimeout(() => setStatusMessage(null), 5000);
+  }, []);
 
   useEffect(() => {
     if (!composition || (!barryEnabled && !monkEnabled)) return;
@@ -83,50 +89,90 @@ export function App() {
   const DEV = (typeof import.meta !== 'undefined' && (import.meta as { env?: { DEV?: boolean } }).env?.DEV) ?? false;
 
   const handleGenerateDraft = useCallback(() => {
+    if (DEV) console.debug('[Monk Composer] Generate Draft clicked');
     if (!barryEnabled && !monkEnabled) return;
     setIsGenerating(true);
+    setStatusMessage(null);
     setTimeout(() => {
-      const comp = generateDraft(engine, target, barry, monk, global);
-      setComposition(comp);
-      const { scores: s, warnings: w } = evaluateGCE(comp, target);
-      setScores(s);
-      setWarnings(w);
-      setRevisionCount(0);
-      if (DEV) {
-        console.debug('[Monk Composer] Generate Draft →', { scores: s, warnings: w, quartetDiagnostics: comp?.quartetDiagnostics });
+      try {
+        const comp = generateDraft(engine, target, barry, monk, global);
+        setComposition(comp);
+        const { scores: s, warnings: w } = evaluateGCE(comp, target);
+        setScores(s);
+        setWarnings(w);
+        setRevisionCount(0);
+        setStatus(`Draft generated. GCE: ${s.overall.toFixed(1)}`, 'success');
+        if (DEV) {
+          console.debug('[Monk Composer] Generate Draft →', { scores: s, warnings: w });
+        }
+      } catch (err) {
+        const msg = err instanceof Error ? err.message : 'Generate failed';
+        setStatus(`Error: ${msg}`, 'error');
+      } finally {
+        setIsGenerating(false);
       }
-      setIsGenerating(false);
     }, 100);
-  }, [engine, target, barry, monk, global, barryEnabled, monkEnabled, DEV]);
+  }, [engine, target, barry, monk, global, barryEnabled, monkEnabled, setStatus, DEV]);
 
   const handleRaiseGCE = useCallback(() => {
-    if (!composition) return;
+    if (DEV) console.debug('[Monk Composer] Raise GCE clicked');
+    if (!composition) {
+      setStatus('No composition available. Generate a draft first.', 'error');
+      if (DEV) console.debug('[Monk Composer] Raise GCE: no composition');
+      return;
+    }
     setIsGenerating(true);
+    setStatusMessage(null);
     setTimeout(() => {
-      const result = runRevisionLoop(composition, target, global.gceThreshold, {
-        target, barry, monk, global, engine,
-      });
-      setComposition(result.composition);
-      setScores(result.scores);
-      const w = evaluateGCE(result.composition, target).warnings;
-      setWarnings(w);
-      setRevisionCount(result.revisionCount);
-      if (DEV) {
-        console.debug('[Monk Composer] Raise GCE →', { scores: result.scores, warnings: w, quartetDiagnostics: result.composition?.quartetDiagnostics });
+      try {
+        if (DEV) console.debug('[Monk Composer] Raise GCE: running revision loop');
+        const result = runRevisionLoop(composition, target, global.gceThreshold, {
+          target, barry, monk, global, engine,
+        });
+        setComposition(result.composition);
+        setScores(result.scores);
+        const w = evaluateGCE(result.composition, target).warnings;
+        setWarnings(w);
+        setRevisionCount(result.revisionCount);
+        setStatus(`Revision loop complete. ${result.revisionCount} revision(s). GCE: ${result.scores.overall.toFixed(1)}`, 'success');
+        if (DEV) {
+          console.debug('[Monk Composer] Raise GCE →', { scores: result.scores, revisionCount: result.revisionCount });
+        }
+      } catch (err) {
+        const msg = err instanceof Error ? err.message : 'Revision failed';
+        setStatus(`Error: ${msg}`, 'error');
+        if (DEV) console.debug('[Monk Composer] Raise GCE error:', err);
+      } finally {
+        setIsGenerating(false);
       }
-      setIsGenerating(false);
     }, 100);
-  }, [composition, target, global.gceThreshold, barry, monk, global, engine, DEV]);
+  }, [composition, target, global.gceThreshold, barry, monk, global, engine, DEV, setStatus]);
 
   const handleRegenerateWeakest = useCallback(() => {
+    if (DEV) console.debug('[Monk Composer] Regenerate Weakest clicked');
+    if (!composition) {
+      setStatus('No composition available. Generate a draft first.', 'error');
+      return;
+    }
     handleRaiseGCE();
-  }, [handleRaiseGCE]);
+  }, [handleRaiseGCE, composition, setStatus, DEV]);
 
   const handleExport = useCallback(async (filename: string, exportPath: string) => {
     if (!composition) return { success: false, path: '' };
+    const defaultName = filename.trim() || 'monk_composition';
+    const sanitized = defaultName.replace(/[<>:"/\\|?*]/g, '_').trim() || 'monk_composition';
+    const workTitle = sanitized;
     const threshold = global.gceThreshold;
     let compToExport = composition;
-    if (target === 'string_quartet' && (scores == null || scores.overall < threshold)) {
+    const chordalTargets = ['guitar', 'piano', 'big_band'];
+    if (chordalTargets.includes(target)) {
+      compToExport = generateDraft(engine, target, barry, monk, global);
+      setComposition(compToExport);
+      const { scores: s, warnings: w } = evaluateGCE(compToExport, target);
+      setScores(s);
+      setWarnings(w);
+      setRevisionCount(0);
+    } else if (target === 'string_quartet' && (scores == null || scores.overall < threshold)) {
       const revResult = runRevisionLoop(composition, target, threshold, {
         target, barry, monk, global, engine,
       });
@@ -136,14 +182,12 @@ export function App() {
       setWarnings(evaluateGCE(compToExport, target).warnings);
       setRevisionCount(revResult.revisionCount);
     }
-    const xml = compositionToMusicXML(compToExport, `Monk Composer - ${target}`, {
+    const xml = compositionToMusicXML(compToExport, workTitle, {
       keyCenter: global.keyCenter,
       meter: global.meter,
       target,
     });
     if (!validateMusicXML(xml)) return { success: false, path: '' };
-    const defaultName = filename.trim() || 'monk_composition';
-    const sanitized = defaultName.replace(/[<>:"/\\|?*]/g, '_').trim() || 'monk_composition';
     const chordCount = (xml.match(/<chord\/>/g) ?? []).length;
     const eventCount = (xml.match(/<note>/g) ?? []).length;
     if (DEV) {
@@ -165,10 +209,15 @@ export function App() {
   }, [composition, scores, target, global.keyCenter, global.meter, global.gceThreshold, barry, monk, global, engine, DEV]);
 
   const handleSavePreset = useCallback(async () => {
-    const name = prompt('Preset name:');
-    if (!name || !window.electronAPI) return;
+    if (DEV) console.debug('[Monk Composer] Save Preset clicked');
+    const api = window.electronAPI as { savePresetWithDialog?: (a: string, b: string) => Promise<{ success: boolean; path?: string; error?: string }> } | undefined;
+    if (!api?.savePresetWithDialog) {
+      setStatus('Save Preset requires the desktop app.', 'error');
+      if (DEV) console.debug('[Monk Composer] Save Preset: no electronAPI');
+      return;
+    }
     const preset: Preset = {
-      name,
+      name: 'preset',
       engine,
       target,
       compositionType,
@@ -177,18 +226,45 @@ export function App() {
       global,
       createdAt: new Date().toISOString(),
     };
-    await window.electronAPI.savePreset(name, JSON.stringify(preset, null, 2));
-  }, [engine, target, compositionType, barry, monk, global]);
+    const content = JSON.stringify(preset, null, 2);
+    const defaultName = `preset_${target}_${new Date().toISOString().slice(0, 10)}`;
+    try {
+      const result = await api.savePresetWithDialog(defaultName, content);
+      if (result.success) {
+        setStatus('Preset saved.', 'success');
+        if (DEV) console.debug('[Monk Composer] Save Preset success:', result.path);
+      } else if (result.error) {
+        setStatus(`Error: ${result.error}`, 'error');
+      } else {
+        setStatus('Save cancelled.', 'info');
+      }
+    } catch (err) {
+      const msg = err instanceof Error ? err.message : 'Save failed';
+      setStatus(`Error: ${msg}`, 'error');
+      if (DEV) console.debug('[Monk Composer] Save Preset error:', err);
+    }
+  }, [engine, target, compositionType, barry, monk, global, setStatus, DEV]);
 
   const handleLoadPreset = useCallback(async () => {
-    if (!window.electronAPI) return;
-    const list = await window.electronAPI.listPresets();
-    const name = prompt(`Preset name (available: ${list.join(', ') || 'none'}):`);
-    if (!name) return;
-    const json = await window.electronAPI.loadPreset(name);
-    if (!json) return;
+    if (DEV) console.debug('[Monk Composer] Load Preset clicked');
+    const api = window.electronAPI as { loadPresetFromFile?: () => Promise<{ success: boolean; content?: string; error?: string }> } | undefined;
+    if (!api?.loadPresetFromFile) {
+      setStatus('Load Preset requires the desktop app.', 'error');
+      if (DEV) console.debug('[Monk Composer] Load Preset: no electronAPI');
+      return;
+    }
     try {
-      const preset: Preset = JSON.parse(json);
+      const result = await api.loadPresetFromFile();
+      if (!result.success) {
+        if (result.error) setStatus(`Error: ${result.error}`, 'error');
+        else setStatus('Load cancelled.', 'info');
+        return;
+      }
+      if (!result.content) {
+        setStatus('Error: Empty file.', 'error');
+        return;
+      }
+      const preset: Preset = JSON.parse(result.content);
       setBarryEnabled(preset.engine === 'barry' || preset.engine === 'barry_monk');
       setMonkEnabled(preset.engine === 'monk' || preset.engine === 'barry_monk');
       setTarget(preset.target);
@@ -196,10 +272,14 @@ export function App() {
       setBarry(preset.barry ?? DEFAULT_BARRY);
       setMonk(preset.monk ?? DEFAULT_MONK);
       setGlobal(migratePresetGlobal((preset.global ?? {}) as unknown as Record<string, unknown>));
-    } catch {
-      alert('Invalid preset');
+      setStatus('Preset loaded.', 'success');
+      if (DEV) console.debug('[Monk Composer] Load Preset success');
+    } catch (err) {
+      const msg = err instanceof Error ? err.message : 'Invalid preset file';
+      setStatus(`Error: ${msg}`, 'error');
+      if (DEV) console.debug('[Monk Composer] Load Preset error:', err);
     }
-  }, []);
+  }, [setStatus, DEV]);
 
   const engineStack =
     engine === 'barry'
@@ -235,7 +315,7 @@ export function App() {
       <header className="app-header">
         <h1>Monk Composer</h1>
         <p>Creative Rule Engines — Barry Harris + Monk composition</p>
-        <p className="version-label">v0.4.1 — chord export unified</p>
+        <p className="version-label">v0.4.4 — buttons fixed, status feedback</p>
       </header>
 
       <div className="grid-2">
@@ -292,7 +372,15 @@ export function App() {
         onLoadPreset={handleLoadPreset}
         isGenerating={isGenerating}
         canGenerate={barryEnabled || monkEnabled}
+        hasComposition={!!composition}
+        electronAPIAvailable={electronAPIAvailable}
       />
+
+      {statusMessage && (
+        <div className={`status-message status-${statusMessage.type}`} role="status">
+          {statusMessage.text}
+        </div>
+      )}
 
       <ExportPanel
         filename={exportFilename}

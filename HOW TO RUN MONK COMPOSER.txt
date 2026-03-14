@@ -1,0 +1,18 @@
+HOW TO RUN MONK COMPOSER
+=======================
+
+Double-click one of these files in this folder:
+
+  Run Monk Composer.bat
+  ---------------------
+  Starts Monk Composer with the latest code.
+  A black window will stay open - that's normal. Keep it open while using the app.
+  Close the Monk Composer window when you're done.
+
+  Rebuild Monk Composer.bat
+  -------------------------
+  Rebuilds the app (takes 1-2 minutes). Use this when you've updated the code.
+  After rebuilding, a "Monk Composer" shortcut may appear on your Desktop.
+  You can then run Monk Composer from that shortcut instead.
+
+If you see "Monk Composer (Latest)" on your Desktop, that also runs the latest code.

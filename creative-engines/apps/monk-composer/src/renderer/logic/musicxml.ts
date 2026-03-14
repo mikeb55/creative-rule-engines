@@ -29,15 +29,16 @@ function durationToType(duration: number): string {
   return '16th';
 }
 
-function noteToXml(n: Note, divs: number, indent = '    ', isChord = false): string {
+function noteToXml(n: Note, divs: number, indent = '    ', isChord = false, staff?: number): string {
   const dur = Math.max(1, Math.round(n.duration * divs));
+  const staffTag = staff != null ? `<staff>${staff}</staff>` : '';
   if (n.rest) {
-    return `${indent}<note><rest/><duration>${dur}</duration><type>${durationToType(n.duration)}</type></note>`;
+    return `${indent}<note>${staffTag}<rest/><duration>${dur}</duration><type>${durationToType(n.duration)}</type></note>`;
   }
   const { step, octave, alter } = midiToStepOctave(n.pitch);
   const alterXml = alter ? `<alter>${alter}</alter>` : '';
   const chordTag = isChord ? '<chord/>' : '';
-  return `${indent}<note>${chordTag}<pitch><step>${step}</step>${alterXml}<octave>${octave}</octave></pitch><duration>${dur}</duration><type>${durationToType(n.duration)}</type></note>`;
+  return `${indent}<note>${chordTag}${staffTag}<pitch><step>${step}</step>${alterXml}<octave>${octave}</octave></pitch><duration>${dur}</duration><type>${durationToType(n.duration)}</type></note>`;
 }
 
 function escapeXml(s: string): string {
@@ -109,9 +110,11 @@ export function compositionToMusicXML(
     );
   }
 
+  const useGrandStaff = target === 'piano' || target === 'big_band';
   return buildSinglePartXml(
     notes, measureMap, measureIndices, maxMeasure,
-    title, divs, fifths, beats, beatType, beatsPerMeasure
+    title, divs, fifths, beats, beatType, beatsPerMeasure,
+    useGrandStaff
   );
 }
 
@@ -134,6 +137,8 @@ function groupNotesForChords(notes: (Note & { offset: number })[]): (Note & { of
   );
 }
 
+const MIDDLE_C = 60;
+
 function buildSinglePartXml(
   _notes: (Note & { offset: number })[],
   measureMap: Map<number, (Note & { offset: number })[]>,
@@ -144,19 +149,25 @@ function buildSinglePartXml(
   fifths: number,
   beats: number,
   beatType: number,
-  beatsPerMeasure: number
+  beatsPerMeasure: number,
+  useGrandStaff = false
 ): string {
   const partList = '<part-list><score-part id="P1"><part-name>Part 1</part-name></score-part></part-list>';
   const measures: string[] = [];
+  const clefAttrs = useGrandStaff
+    ? `<clef number="1"><sign>G</sign><line>2</line></clef><clef number="2"><sign>F</sign><line>4</line></clef>`
+    : `<clef><sign>G</sign><line>2</line></clef>`;
   for (let m = 0; m <= maxMeasure; m++) {
     const msrNotes = (measureMap.get(m) ?? []).sort((a, b) => a.offset - b.offset);
     const attrs = m === 0
-      ? `<attributes><divisions>${divs}</divisions><key><fifths>${fifths}</fifths></key><time><beats>${beats}</beats><beat-type>${beatType}</beat-type></time><clef><sign>G</sign><line>2</line></clef></attributes>`
+      ? `<attributes><divisions>${divs}</divisions><key><fifths>${fifths}</fifths></key><time><beats>${beats}</beats><beat-type>${beatType}</beat-type></time>${clefAttrs}</attributes>`
       : '';
     const groups = groupNotesForChords(msrNotes);
-    const notesXml = groups.flatMap(g =>
-      g.map((n, i) => noteToXml(n, divs, '      ', i > 0))
-    ).join('\n');
+    const notesXml = groups.flatMap(g => {
+      const topPitch = g.length > 0 ? Math.max(...g.map(n => n.pitch ?? 0)) : 60;
+      const staff = useGrandStaff ? (topPitch >= MIDDLE_C ? 1 : 2) : undefined;
+      return g.map((n, i) => noteToXml(n, divs, '      ', i > 0, staff));
+    }).join('\n');
     const restXml = msrNotes.length === 0
       ? noteToXml({ pitch: 60, duration: beatsPerMeasure, rest: true }, divs)
       : '';

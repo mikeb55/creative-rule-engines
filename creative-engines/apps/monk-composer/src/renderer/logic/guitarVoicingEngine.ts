@@ -124,7 +124,6 @@ export function applyGuitarVoicing(
   harmony: Chord[],
   options: GuitarVoicingOptions = {}
 ): Note[] {
-  const harmonizeRatio = Math.min(0.6, Math.max(0.4, options.harmonizeRatio ?? 0.5));
   const keyCenter = options.keyCenter ?? 'C';
   const keyRoot = ROOT_SEMITONE[keyCenter] ?? 0;
 
@@ -143,7 +142,7 @@ export function applyGuitarVoicing(
     }
 
     const chord = getChordAtBeat(harmony, offset);
-    const shouldHarmonize = chord && (i % 2 === 0 || (i % 4 === 1 && Math.random() < 0.5));
+    const shouldHarmonize = chord && (i % 4 === 0 || (i % 8 === 2 && Math.random() < 0.4));
 
     if (!shouldHarmonize || !chord) {
       result.push({ pitch, duration, offset, rest: false });

@@ -240,9 +240,54 @@ ipcMain.handle('fs:exportMusicXMLWithDialog', async (_, defaultFilename: string,
   }
 });
 
-ipcMain.handle('fs:savePreset', async (_, name: string, content: string): Promise<boolean> => {
-  const presetPath = path.join(getPresetsPath(), `${name}.json`);
-  return fs.writeFileSync(presetPath, content, 'utf-8') !== undefined;
+ipcMain.handle('fs:savePreset', async (_, name: string, content: string): Promise<{ success: boolean; error?: string }> => {
+  try {
+    const presetPath = path.join(getPresetsPath(), `${name}.json`);
+    fs.writeFileSync(presetPath, content, 'utf-8');
+    return { success: true };
+  } catch (err) {
+    return { success: false, error: err instanceof Error ? err.message : 'Save failed' };
+  }
+});
+
+ipcMain.handle('fs:savePresetWithDialog', async (_, defaultName: string, content: string): Promise<{ success: boolean; path?: string; error?: string }> => {
+  const win = mainWindow ?? BrowserWindow.getAllWindows()[0] ?? null;
+  const filename = defaultName.endsWith('.json') ? defaultName : `${defaultName}.json`;
+  const result = await dialog.showSaveDialog(win, {
+    title: 'Save Preset',
+    defaultPath: path.join(getPresetsPath(), filename),
+    filters: [{ name: 'JSON', extensions: ['json'] }],
+  });
+  if (result.canceled || !result.filePath) {
+    return { success: false };
+  }
+  const filePath = result.filePath.endsWith('.json') ? result.filePath : `${result.filePath}.json`;
+  try {
+    ensureDir(path.dirname(filePath));
+    fs.writeFileSync(filePath, content, 'utf-8');
+    return { success: true, path: filePath };
+  } catch (err) {
+    return { success: false, error: err instanceof Error ? err.message : 'Save failed' };
+  }
+});
+
+ipcMain.handle('fs:loadPresetFromFile', async (): Promise<{ success: boolean; content?: string; error?: string }> => {
+  const win = mainWindow ?? BrowserWindow.getAllWindows()[0] ?? null;
+  const result = await dialog.showOpenDialog(win, {
+    title: 'Load Preset',
+    defaultPath: getPresetsPath(),
+    filters: [{ name: 'JSON', extensions: ['json'] }],
+    properties: ['openFile'],
+  });
+  if (result.canceled || result.filePaths.length === 0) {
+    return { success: false };
+  }
+  try {
+    const content = fs.readFileSync(result.filePaths[0], 'utf-8');
+    return { success: true, content };
+  } catch (err) {
+    return { success: false, error: err instanceof Error ? err.message : 'Read failed' };
+  }
 });
 
 ipcMain.handle('fs:loadPreset', async (_, name: string): Promise<string> => {

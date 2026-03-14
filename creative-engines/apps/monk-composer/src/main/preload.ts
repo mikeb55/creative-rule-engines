@@ -19,6 +19,9 @@ contextBridge.exposeInMainWorld('electronAPI', {
     ipcRenderer.invoke('fs:exportDiagnosticsJSONWithDialog', defaultBaseFilename, content),
   savePreset: (name: string, content: string) =>
     ipcRenderer.invoke('fs:savePreset', name, content),
+  savePresetWithDialog: (defaultName: string, content: string) =>
+    ipcRenderer.invoke('fs:savePresetWithDialog', defaultName, content),
   loadPreset: (name: string) => ipcRenderer.invoke('fs:loadPreset', name),
+  loadPresetFromFile: () => ipcRenderer.invoke('fs:loadPresetFromFile'),
   listPresets: () => ipcRenderer.invoke('fs:listPresets'),
 });

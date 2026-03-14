@@ -29,7 +29,7 @@ function runTest(target: 'guitar' | 'piano' | 'big_band') {
 
   const textureNotes = comp.texture?.flatMap(t => t.notes) ?? [];
   const maxSimul = countSimultaneous(textureNotes);
-  const chordCount = textureNotes.filter((n, i, arr) => {
+  const chordCount = textureNotes.filter((n, _i, arr) => {
     const round = (x: number) => Math.round(x * 1000) / 1000;
     const key = `${round(n.offset ?? 0)}_${round(n.duration ?? 0)}`;
     return arr.filter(m => `${round(m.offset ?? 0)}_${round(m.duration ?? 0)}` === key).length > 1;

@@ -64,6 +64,36 @@ body {
   opacity: 0.85;
 }
 
+.status-message {
+  padding: 10px 16px;
+  border-radius: var(--radius);
+  font-size: 0.9rem;
+  animation: fadeIn 0.2s ease;
+}
+
+.status-message.status-success {
+  background: rgba(74, 222, 128, 0.15);
+  border: 1px solid var(--success);
+  color: var(--success);
+}
+
+.status-message.status-error {
+  background: rgba(248, 113, 113, 0.15);
+  border: 1px solid var(--error);
+  color: var(--error);
+}
+
+.status-message.status-info {
+  background: rgba(251, 191, 36, 0.15);
+  border: 1px solid var(--warning);
+  color: var(--warning);
+}
+
+@keyframes fadeIn {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
 .panel {
   background: var(--bg-panel);
   border-radius: var(--radius);
