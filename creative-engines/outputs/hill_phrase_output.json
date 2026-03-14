@@ -1,0 +1,318 @@
+{
+  "engine": "Andrew Hill Engine Prototype",
+  "generated": "2026-03-14T10:15:22.966262",
+  "interval_cell": [
+    "C",
+    "Eb",
+    "F"
+  ],
+  "harmonic_field": [
+    "C",
+    "Eb",
+    "F#",
+    "G"
+  ],
+  "phrase_structure": "4+4+3",
+  "events": [
+    {
+      "event_id": "HILL_000",
+      "pitches": [
+        "C",
+        "Eb",
+        "F#"
+      ],
+      "role": "counterline",
+      "beat_position": 7.04,
+      "duration": 1.0,
+      "register_band": "middle",
+      "rhythmic_layer": "pulse",
+      "source_interval_cell": [
+        "C",
+        "Eb",
+        "F"
+      ],
+      "source_harmonic_field": [
+        "C",
+        "Eb",
+        "F#",
+        "G"
+      ],
+      "phrase_structure": "4+4+3"
+    },
+    {
+      "event_id": "HILL_001",
+      "pitches": [
+        "F#",
+        "C",
+        "Eb"
+      ],
+      "role": "melody_fragment",
+      "beat_position": 6.97,
+      "duration": 1.0,
+      "register_band": "upper-middle",
+      "rhythmic_layer": "phrase_stretch",
+      "source_interval_cell": [
+        "C",
+        "Eb",
+        "F"
+      ],
+      "source_harmonic_field": [
+        "C",
+        "Eb",
+        "F#",
+        "G"
+      ],
+      "phrase_structure": "4+4+3"
+    },
+    {
+      "event_id": "HILL_002",
+      "pitches": [
+        "C",
+        "Eb",
+        "F#"
+      ],
+      "role": "melody_fragment",
+      "beat_position": 7.85,
+      "duration": 0.5,
+      "register_band": "middle",
+      "rhythmic_layer": "displacement",
+      "source_interval_cell": [
+        "C",
+        "Eb",
+        "F"
+      ],
+      "source_harmonic_field": [
+        "C",
+        "Eb",
+        "F#",
+        "G"
+      ],
+      "phrase_structure": "4+4+3"
+    },
+    {
+      "event_id": "HILL_003",
+      "pitches": [
+        "Eb",
+        "G",
+        "C"
+      ],
+      "role": "cluster_color",
+      "beat_position": 7.68,
+      "duration": 1.5,
+      "register_band": "upper-middle",
+      "rhythmic_layer": "pulse",
+      "source_interval_cell": [
+        "C",
+        "Eb",
+        "F"
+      ],
+      "source_harmonic_field": [
+        "C",
+        "Eb",
+        "F#",
+        "G"
+      ],
+      "phrase_structure": "4+4+3"
+    },
+    {
+      "event_id": "HILL_004",
+      "pitches": [
+        "F#",
+        "C",
+        "G"
+      ],
+      "role": "melody_fragment",
+      "beat_position": 0.72,
+      "duration": 0.5,
+      "register_band": "low",
+      "rhythmic_layer": "phrase_stretch",
+      "source_interval_cell": [
+        "C",
+        "Eb",
+        "F"
+      ],
+      "source_harmonic_field": [
+        "C",
+        "Eb",
+        "F#",
+        "G"
+      ],
+      "phrase_structure": "4+4+3"
+    },
+    {
+      "event_id": "HILL_005",
+      "pitches": [
+        "Eb",
+        "F#",
+        "G"
+      ],
+      "role": "melody_fragment",
+      "beat_position": 3.49,
+      "duration": 1.0,
+      "register_band": "low",
+      "rhythmic_layer": "displacement",
+      "source_interval_cell": [
+        "C",
+        "Eb",
+        "F"
+      ],
+      "source_harmonic_field": [
+        "C",
+        "Eb",
+        "F#",
+        "G"
+      ],
+      "phrase_structure": "4+4+3"
+    },
+    {
+      "event_id": "HILL_006",
+      "pitches": [
+        "Eb",
+        "G",
+        "C"
+      ],
+      "role": "melody_fragment",
+      "beat_position": 2.93,
+      "duration": 0.5,
+      "register_band": "upper-middle",
+      "rhythmic_layer": "displacement",
+      "source_interval_cell": [
+        "C",
+        "Eb",
+        "F"
+      ],
+      "source_harmonic_field": [
+        "C",
+        "Eb",
+        "F#",
+        "G"
+      ],
+      "phrase_structure": "4+4+3"
+    },
+    {
+      "event_id": "HILL_007",
+      "pitches": [
+        "Eb",
+        "F#",
+        "G"
+      ],
+      "role": "cluster_color",
+      "beat_position": 0.3,
+      "duration": 1.0,
+      "register_band": "middle",
+      "rhythmic_layer": "displacement",
+      "source_interval_cell": [
+        "C",
+        "Eb",
+        "F"
+      ],
+      "source_harmonic_field": [
+        "C",
+        "Eb",
+        "F#",
+        "G"
+      ],
+      "phrase_structure": "4+4+3"
+    },
+    {
+      "event_id": "HILL_008",
+      "pitches": [
+        "C",
+        "Eb",
+        "F#"
+      ],
+      "role": "cluster_color",
+      "beat_position": 5.58,
+      "duration": 1.0,
+      "register_band": "upper-middle",
+      "rhythmic_layer": "phrase_stretch",
+      "source_interval_cell": [
+        "C",
+        "Eb",
+        "F"
+      ],
+      "source_harmonic_field": [
+        "C",
+        "Eb",
+        "F#",
+        "G"
+      ],
+      "phrase_structure": "4+4+3"
+    },
+    {
+      "event_id": "HILL_009",
+      "pitches": [
+        "Eb",
+        "C",
+        "G"
+      ],
+      "role": "melody_fragment",
+      "beat_position": 5.44,
+      "duration": 0.5,
+      "register_band": "upper-middle",
+      "rhythmic_layer": "displacement",
+      "source_interval_cell": [
+        "C",
+        "Eb",
+        "F"
+      ],
+      "source_harmonic_field": [
+        "C",
+        "Eb",
+        "F#",
+        "G"
+      ],
+      "phrase_structure": "4+4+3"
+    },
+    {
+      "event_id": "HILL_010",
+      "pitches": [
+        "Eb",
+        "G",
+        "C"
+      ],
+      "role": "melody_fragment",
+      "beat_position": 6.01,
+      "duration": 0.5,
+      "register_band": "upper-middle",
+      "rhythmic_layer": "pulse",
+      "source_interval_cell": [
+        "C",
+        "Eb",
+        "F"
+      ],
+      "source_harmonic_field": [
+        "C",
+        "Eb",
+        "F#",
+        "G"
+      ],
+      "phrase_structure": "4+4+3"
+    },
+    {
+      "event_id": "HILL_011",
+      "pitches": [
+        "C",
+        "F#",
+        "Eb"
+      ],
+      "role": "cluster_color",
+      "beat_position": 6.54,
+      "duration": 1.5,
+      "register_band": "middle",
+      "rhythmic_layer": "displacement",
+      "source_interval_cell": [
+        "C",
+        "Eb",
+        "F"
+      ],
+      "source_harmonic_field": [
+        "C",
+        "Eb",
+        "F#",
+        "G"
+      ],
+      "phrase_structure": "4+4+3"
+    }
+  ]
+}

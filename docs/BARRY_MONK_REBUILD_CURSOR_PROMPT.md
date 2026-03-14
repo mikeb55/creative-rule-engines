@@ -1,0 +1,162 @@
+# Barry Harris / Monk Engine Rebuild — Cursor Prompt
+
+## Recommendation
+
+**Your plan is sound.** Archive-first, rebuild-second, delete-last is the right sequence. It avoids turning today's confusion into tomorrow's missing-files mystery. The refinement you added—never begin by removing the old engine—is essential. The prompt below enforces that order strictly.
+
+---
+
+## Copy-Paste-Ready Cursor Prompt
+
+```markdown
+# Barry Harris / Monk Engine Rebuild — Automated Plan
+
+## Context
+
+- **creative-engines** = platform/infrastructure (runtime, palettes, rules, templates, docs). Do NOT duplicate engine-definition files here.
+- **creative-rule-engines** = engine-definition and experimental rule-engine repo. Monk, Barry Harris, Andrew Hill, and related composer engines belong here.
+- The current Barry Harris / Monk implementation is messy: blurred layers, generation/voicing/idiom/orchestration mixed too early, weak separation of motif/harmony/phrase/event, validators too late or too weak, architecture drift, poor testability, likely duplication between old and new files.
+
+## Mandatory Order (Do Not Deviate)
+
+1. **Archive first** — Create archive; copy old files into it. Do NOT delete anything yet.
+2. **Map second** — Produce rebuild map document.
+3. **Rebuild third** — Create new clean architecture beside the old.
+4. **Migrate fourth** — Copy only proven logic that passes scrutiny.
+5. **Verify fifth** — Run structural verification.
+6. **Remove last** — Only after new structure exists and is verified, quarantine or remove the broken version.
+
+## Phase 1: Archive (Do This First)
+
+1. Create `creative-rule-engines/archive/barry_monk_pre_rebuild_YYYYMMDD/` (use today's date).
+2. Copy (do not move) the following into the archive:
+   - `engines/barry_harris_engine_v2.md`
+   - `engines/monk_engine_v2.md`
+   - `creative-engines/engines/barry_harris_engine.md`
+   - `creative-engines/engines/monk_engine.md`
+   - `creative-engines/apps/monk-composer/src/renderer/logic/` (entire folder: barryRules.ts, generator.ts, pianoVoicingEngine.ts, guitarVoicingEngine.ts, guitarIdiomRules.ts, pianoIdiomRules.ts, bigBandIdiomRules.ts, gceEvaluator.ts, revisionLoop.ts, phraseTemplates.ts, quartetEngine.ts, targetTranslator.ts, presets.ts, engineLoader.ts, idiomValidators.ts, and all other logic files)
+   - `creative-engines/apps/monk-composer/presets/` (default_barry.json, default_monk.json, default_barry_monk.json)
+   - Any other Monk/Barry Harris related files you find under `creative-rule-engines`
+3. Create `archive/barry_monk_pre_rebuild_YYYYMMDD/ARCHIVE_MANIFEST.md` listing every file copied and its original path.
+4. Do NOT delete or modify the originals yet.
+
+## Phase 2: Rebuild Map
+
+1. Create `creative-rule-engines/docs/barry_monk_rebuild_map.md`.
+2. In that document, for each archived file or module:
+   - **KEEP** — Logic is sound, well-separated, and reusable. Migrate to new structure.
+   - **ARCHIVE** — Keep in archive only; do not migrate.
+   - **REWRITE** — Concept is useful but implementation is messy. Rebuild from spec.
+   - **DISCARD** — Redundant, wrong, or superseded. Do not migrate.
+3. Identify:
+   - Shared event schema requirements (form, motif, harmony, phrase, event, idiom, voicing, export).
+   - Module boundaries for barry_harris_engine_v3, monk_engine_v3, monk_barry_hybrid_v3.
+   - Validator placement and failure-mode checks.
+   - Hybrid-control design: how Barry Harris and Monk identities remain distinct, with a controlled hybrid layer rather than a blurred merger.
+4. Reference `creative-engines/docs/engine_design_standard.md` and `creative-engines/templates/engine_spec_template.md` for architecture.
+
+## Phase 3: New Architecture (Create Beside Old)
+
+1. Create the following structure under `creative-rule-engines/`:
+
+```
+engines/
+  barry-harris-engine-v3/
+    barry_harris_engine_spec.md
+    barry_harris_event_schema.md
+    barry_harris_movement_rules.md
+    barry_harris_validator.md
+    barry_harris_vocabulary.md
+  monk-engine-v3/
+    monk_engine_spec.md
+    monk_event_schema.md
+    monk_shell_rules.md
+    monk_validator.md
+    monk_vocabulary.md
+  monk-barry-hybrid-v3/
+    hybrid_control_design.md
+    hybrid_event_schema.md
+docs/
+  shared_event_schema.md          (form, motif, harmony, phrase, event, idiom, voicing)
+  barry_monk_rebuild_map.md       (from Phase 2)
+  barry_monk_module_boundaries.md
+tests/
+  barry_harris_v3/
+    barry_harris_structural_test.md
+  monk_v3/
+    monk_structural_test.md
+  hybrid_v3/
+    hybrid_structural_test.md
+```
+
+2. Do NOT create runtime/ unless a standalone runtime is required for the new engines. Prefer integration with existing monk-composer app or creative-engines runtime.
+
+3. Populate each spec file using the engine design standard and templates. Ensure:
+   - Layered architecture: form → motif → harmony → phrase → event → idiom → voicing → export → validation → revision.
+   - Structured event model, not raw note streams.
+   - Instrument idiom handled after musical generation, not inside harmonic logic.
+   - Validator-first mindset.
+   - Anti-metric-gaming logic.
+   - Engine-specific grammar, not generic AI jazz output.
+
+## Phase 4: Migrate Proven Logic
+
+1. From the rebuild map, for each item marked **KEEP** or **REWRITE**:
+   - Extract only the logic that passes scrutiny.
+   - Do NOT copy old messy code wholesale.
+   - Place migrated logic in the appropriate new module with clear boundaries.
+2. For **REWRITE** items: implement from spec; use old logic only as reference, not as source.
+
+## Phase 5: Structural Verification
+
+1. Create `creative-rule-engines/tests/barry_monk_rebuild_verification.md`.
+2. For each new engine (barry_harris_v3, monk_v3, hybrid_v3):
+   - Verify spec completeness.
+   - Verify event schema alignment with shared_event_schema.md.
+   - Verify module boundaries (no blurred layers).
+   - Verify validator placement and failure-mode checks.
+   - Verify hybrid-control design preserves distinct Barry Harris and Monk identities.
+3. Run any existing tests (e.g. `tests/evaluate_gce.ts`) against migrated logic if applicable.
+4. Document pass/fail for each check.
+
+## Phase 6: Remove Old Implementation (Only After Phase 5 Passes)
+
+1. Only if Phase 5 verification passes:
+   - Move (do not delete) the old implementation from `creative-engines/apps/monk-composer/src/renderer/logic/` to `archive/barry_monk_pre_rebuild_YYYYMMDD/monk_composer_logic/`.
+   - Update monk-composer to import from the new engine modules (or stub the imports until implementation is complete).
+   - If stubbing: add clear TODO comments and ensure the app still builds.
+2. If Phase 5 fails: do NOT remove. Fix the new structure first, then retry Phase 6.
+
+## Phase 7: Consolidation Report
+
+1. Create `creative-rule-engines/docs/barry_monk_rebuild_consolidation_report.md`.
+2. Include:
+   - Summary of what was archived.
+   - Summary of what was kept, rewritten, discarded.
+   - New structure overview.
+   - Verification results.
+   - Remaining work (e.g. monk-composer integration, runtime wiring).
+   - Git history preserved (restructuring, not destructive wipe).
+
+## Constraints
+
+- Use relative paths.
+- Assume immediate file writing in workspace.
+- Do not rely on PowerShell-specific commands; use cross-platform approaches where possible.
+- Prioritize architectural correctness over patching the old mess.
+- Preserve git history by restructuring rather than destructive wiping.
+- Maintain distinct Barry Harris and Monk identities; hybrid layer is controlled, not blurred.
+```
+
+---
+
+## How to Use
+
+1. Open Cursor in the **creative-rule-engines** workspace.
+2. Paste the entire prompt (from `# Barry Harris / Monk Engine Rebuild` through the final backticks) into a new chat.
+3. Let Cursor execute the phases in order. Do not skip Phase 1.
+
+---
+
+**File:** BARRY_MONK_REBUILD_CURSOR_PROMPT.md  
+**Path:** C:\Users\mike\Documents\Cursor AI Projects\creative-rule-engines\docs\

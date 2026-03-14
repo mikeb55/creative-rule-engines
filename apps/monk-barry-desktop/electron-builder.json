@@ -1,0 +1,17 @@
+{
+  "appId": "com.creative-rule-engines.monk-barry-composer",
+  "productName": "Monk Barry Composer",
+  "directories": { "output": "release" },
+  "files": ["dist/**/*", "dist-electron/**/*", "assets/**/*"],
+  "forceCodeSigning": false,
+  "win": {
+    "target": ["portable", "nsis"],
+    "icon": "assets/app-icon.png",
+    "signAndEditExecutable": false
+  },
+  "nsis": {
+    "oneClick": false,
+    "allowToChangeInstallationDirectory": true,
+    "shortcutName": "Monk Barry Composer"
+  }
+}
