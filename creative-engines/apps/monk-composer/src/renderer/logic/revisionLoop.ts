@@ -5,6 +5,7 @@ import { addDiminishedPassing } from './barryRules';
 import { generateQuartet } from './quartetEngine';
 import { generateDraft } from './generator';
 import type { BarryControls, MonkControls, GlobalControls } from './types';
+import { validateGuitarIdiomHard, validatePianoIdiomHard } from './idiomValidators';
 
 const MAX_ITERATIONS = 25;
 
@@ -157,7 +158,20 @@ export function runRevisionLoop(
       }
     } else if (['guitar', 'piano', 'big_band'].includes(target) && barry && monk && global) {
       const engine = (opts.engine ?? comp.metadata?.engine ?? 'barry') as 'barry' | 'monk' | 'barry_monk';
-      comp = generateDraft(engine, target as 'guitar' | 'piano' | 'big_band', barry, monk, global);
+      let draft = generateDraft(engine, target as 'guitar' | 'piano' | 'big_band', barry, monk, global);
+      if (target === 'guitar' && draft.texture?.length) {
+        const g = validateGuitarIdiomHard(draft.texture);
+        if (!g.pass) {
+          draft = generateDraft(engine === 'barry_monk' ? 'barry' : engine, target, barry, monk, global);
+        }
+      }
+      if (target === 'piano' && draft.texture?.length === 2) {
+        const p = validatePianoIdiomHard(draft.texture);
+        if (!p.pass) {
+          draft = generateDraft(engine === 'barry_monk' ? 'monk' : engine, target, barry, monk, global);
+        }
+      }
+      comp = draft;
       comp.metadata = { ...comp.metadata, revisionCount: revisionCount + 1 };
     } else {
       const weakest =

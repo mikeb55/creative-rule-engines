@@ -2,6 +2,30 @@
 
 ## [Unreleased]
 
+### 2025-03-11 — Barry/Monk Guitar & Piano Chord Generation Fix (v0.6.0)
+
+- **Internal chord-event model** — New `musicEvents.ts` with `MusicEvent` (pitches[], duration, beatPosition, staff, voice, role). Stops flattening harmony into note streams; supports genuine simultaneity.
+
+- **Separation of harmony and voicing** — Barry and Monk engines output harmonic instructions (chord symbols, guide tones, shells); target-specific voicing engines translate to instrumental notation.
+
+- **Guitar voicing engine** — `guitarVoicingEngine.ts` produces real chord events: shells, guide-tone dyads, compact triads. At least one chord event every two measures. Valid string grouping, realistic fret span. Mixed texture: line, dyad, triad, stab, rest.
+
+- **Piano voicing engine** — `pianoVoicingEngine.ts` produces true two-staff writing. LH: shell, root/guide-tone support, sparse movement. RH: melody, compact voicings. Phrase breathing, release at cadences. Regular 3+ note harmonic events.
+
+- **Hard idiom validators** — `idiomValidators.ts` rejects outputs that fail: guitar (playable grips, chord-event %, mixed texture); piano (two staves, LH/RH independence, simultaneity threshold).
+
+- **GCE hard caps** — Guitar: cap at 6.5 if >65% single-note; cap at 6.0 if chordal texture not recurrent. Piano: cap at 5.5 if no LH/RH independence; cap at 5.5 if max simultaneity < 3; cap at 5.0 if melody + occasional bass. GCE ≥ 9 only when idiom and export validators pass.
+
+- **Self-test loop** — Revision loop runs idiom validators, export validation, GCE; regenerates on failure until pass.
+
+- **Audit panel** — Shows target type, staff/voice counts, chord-event %, average/max simultaneity, LH/RH activity ratio, guitar grip validity, motif recurrence, GCE, export validation.
+
+- **Sibelius export** — MusicXML 3.0 default, piano `<staves>2</staves>`, correct RH/LH voice separation, chord grouping by voice. Canonical export path shared by script and GUI.
+
+- **Big band deferred** — Big band template utilities retained; big band gated behind successful guitar and piano generation.
+
+- **Generation script** — `npx tsx scripts/generate-fixed-outputs.ts` produces `barry-guitar-fixed.musicxml`, `monk-guitar-fixed.musicxml`, `barry-piano-fixed.musicxml`, `monk-piano-fixed.musicxml` with retry until idiom and export pass.
+
 ### 2025-03-11 — Target-Specific Idiom Rules and Template-Based Big Band (v0.5.0)
 
 - **Target-specific idiom rule sets** — Guitar, piano, and big band now use dedicated idiom modules (`guitarIdiomRules.ts`, `pianoIdiomRules.ts`, `bigBandIdiomRules.ts`) instead of generic voicing engines. Each target enforces idiomatic constraints: compact chord vocabulary, string-group awareness (guitar); two-hand independence, phrase breathing (piano); section roles, counterlines, density arc (big band).

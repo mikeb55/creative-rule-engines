@@ -42,14 +42,26 @@ export function applyPianoIdiom(
   const rightHand: Note[] = [];
   const leftHand: Note[] = [];
 
+  const harmonizeRatio = 0.45;
+
   for (const n of melody) {
     if (n.rest) continue;
+    const offset = n.offset ?? 0;
+    const chord = getChordAtBeat(harmony, offset);
+    const pitch = Math.min(PIANO_HIGH, Math.max(RH_LOW, n.pitch));
     rightHand.push({
-      pitch: Math.min(PIANO_HIGH, Math.max(RH_LOW, n.pitch)),
+      pitch,
       duration: n.duration ?? 0.5,
-      offset: n.offset ?? 0,
+      offset,
       rest: false,
     });
+    if (chord && rng() < harmonizeRatio) {
+      const triad = compactTriad(chord, 4);
+      const below = triad.filter(p => p < pitch && p >= RH_LOW).slice(0, 2);
+      for (const p of below) {
+        rightHand.push({ pitch: p, duration: n.duration ?? 0.5, offset, rest: false });
+      }
+    }
   }
 
   let beatIndex = 0;
@@ -72,7 +84,6 @@ export function applyPianoIdiom(
       const target = ZONE_DENSITY[zone] * 0.5;
 
       const hasLH = chord && rng() < target;
-      const hasRHChord = chord && !hasLH && rng() < target * 0.7;
 
       if (hasLH && chord) {
         const variant = beatIndex % 4;
@@ -84,15 +95,6 @@ export function applyPianoIdiom(
           if (p >= LH_LOW && p <= LH_HIGH) {
             leftHand.push({ pitch: p, duration: dur, offset, rest: false });
           }
-        }
-      }
-
-      const melodyNote = melody.find(m => !m.rest && Math.abs((m.offset ?? 0) - offset) < 0.6);
-      if (hasRHChord && chord && melodyNote) {
-        const triad = compactTriad(chord, 4);
-        const below = triad.filter(p => p < (melodyNote.pitch ?? 0) && p >= RH_LOW).slice(0, 2);
-        for (const p of below) {
-          rightHand.push({ pitch: p, duration: 0.5, offset, rest: false });
         }
       }
       beatIndex++;

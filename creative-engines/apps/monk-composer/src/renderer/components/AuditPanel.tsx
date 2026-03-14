@@ -1,6 +1,8 @@
 import { useState } from 'react';
 import type { GCEScores, Warnings, Composition, OutputTarget } from '../logic/types';
 import { runSelfTest } from '../logic/selfTest';
+import { validateGuitarIdiomHard, validatePianoIdiomHard } from '../logic/idiomValidators';
+import { averageSimultaneity, maxSimultaneity } from '../logic/musicEvents';
 
 interface AuditPanelProps {
   scores: GCEScores | null;
@@ -67,8 +69,52 @@ export function AuditPanel({ scores, warnings, revisionCount, composition, instr
           {selfTestReport && (
             <div style={{ marginTop: 12, padding: 10, background: 'rgba(0,0,0,0.15)', borderRadius: 4, fontSize: '0.8rem' }}>
               <h4 style={{ margin: '0 0 8px', fontSize: '0.85rem' }}>Idiom Status</h4>
-              <div className="flex-between" style={{ marginBottom: 4 }}><span className="muted">Chord events</span><span>{selfTestReport.chordEventCount}</span></div>
-              <div className="flex-between" style={{ marginBottom: 4 }}><span className="muted">Motif recurrences</span><span>{selfTestReport.motifRecurrenceCount}</span></div>
+              <div className="flex-between" style={{ marginBottom: 4 }}><span className="muted">Target type</span><span>{instrumentTarget ?? '—'}</span></div>
+              {composition?.texture && (
+                <>
+                  <div className="flex-between" style={{ marginBottom: 4 }}><span className="muted">Staff count</span><span>{instrumentTarget === 'piano' ? 2 : 1}</span></div>
+                  <div className="flex-between" style={{ marginBottom: 4 }}><span className="muted">Voice count</span><span>{composition.texture.length}</span></div>
+                  <div className="flex-between" style={{ marginBottom: 4 }}><span className="muted">Chord-event %</span><span>{(() => {
+                    const all = composition.texture.flatMap(t => (t.notes ?? []).filter((n: { rest?: boolean }) => !n.rest));
+                    const byOffset = new Map<number, number>();
+                    for (const n of all) {
+                      const o = Math.round(((n as { offset?: number }).offset ?? 0) * 4) / 4;
+                      byOffset.set(o, (byOffset.get(o) ?? 0) + 1);
+                    }
+                    const chord = [...byOffset.values()].filter(c => c >= 2).length;
+                    const total = byOffset.size;
+                    return total > 0 ? ((chord / total) * 100).toFixed(1) + '%' : '—';
+                  })()}</span></div>
+                  <div className="flex-between" style={{ marginBottom: 4 }}><span className="muted">Avg simultaneity</span><span>{averageSimultaneity(composition.texture).toFixed(2)}</span></div>
+                  <div className="flex-between" style={{ marginBottom: 4 }}><span className="muted">Max simultaneity</span><span>{maxSimultaneity(composition.texture)}</span></div>
+                  {instrumentTarget === 'piano' && composition.texture.length === 2 && (
+                    <>
+                      <div className="flex-between" style={{ marginBottom: 4 }}><span className="muted">LH activity ratio</span><span>{(() => {
+                        const lh = (composition.texture[1]?.notes ?? []).filter((n: { rest?: boolean }) => !n.rest);
+                        const rh = (composition.texture[0]?.notes ?? []).filter((n: { rest?: boolean }) => !n.rest);
+                        const lhBeats = new Set(lh.map((n: { offset?: number }) => Math.round((n.offset ?? 0) * 4) / 4)).size;
+                        const rhBeats = new Set(rh.map((n: { offset?: number }) => Math.round((n.offset ?? 0) * 4) / 4)).size;
+                        const total = lhBeats + rhBeats;
+                        return total > 0 ? (lhBeats / total).toFixed(2) : '—';
+                      })()}</span></div>
+                      <div className="flex-between" style={{ marginBottom: 4 }}><span className="muted">RH activity ratio</span><span>{(() => {
+                        const lh = (composition.texture[1]?.notes ?? []).filter((n: { rest?: boolean }) => !n.rest);
+                        const rh = (composition.texture[0]?.notes ?? []).filter((n: { rest?: boolean }) => !n.rest);
+                        const lhBeats = new Set(lh.map((n: { offset?: number }) => Math.round((n.offset ?? 0) * 4) / 4)).size;
+                        const rhBeats = new Set(rh.map((n: { offset?: number }) => Math.round((n.offset ?? 0) * 4) / 4)).size;
+                        const total = lhBeats + rhBeats;
+                        return total > 0 ? (rhBeats / total).toFixed(2) : '—';
+                      })()}</span></div>
+                    </>
+                  )}
+                  {instrumentTarget === 'guitar' && (() => {
+                    const g = validateGuitarIdiomHard(composition.texture);
+                    return <div className="flex-between" style={{ marginBottom: 4 }}><span className="muted">Guitar grip validity</span><span>{g.gripValidity != null ? (g.gripValidity * 100).toFixed(0) + '%' : '—'}</span></div>;
+                  })()}
+                </>
+              )}
+              <div className="flex-between" style={{ marginBottom: 4 }}><span className="muted">Motif recurrence</span><span>{selfTestReport.motifRecurrenceCount}</span></div>
+              <div className="flex-between" style={{ marginBottom: 4 }}><span className="muted">GCE score</span><span>{selfTestReport.gce}</span></div>
               <div className="flex-between" style={{ marginBottom: 4 }}><span className="muted">Target idiom</span><span className={selfTestReport.targetIdiomPass ? 'success-text' : ''}>{selfTestReport.targetIdiomPass ? 'PASS' : 'FAIL'}</span></div>
               <div className="flex-between" style={{ marginBottom: 4 }}><span className="muted">Export verified</span><span>{selfTestReport.exportVerified ? 'Yes' : '—'}</span></div>
               {selfTestReport.latestFailingTest && <div className="muted" style={{ marginTop: 4 }}>Failing: {selfTestReport.latestFailingTest}</div>}

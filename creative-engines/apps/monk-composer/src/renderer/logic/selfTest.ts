@@ -7,6 +7,7 @@ import { evaluateGCE } from './gceEvaluator';
 import { validateGuitarIdiom } from './guitarIdiomRules';
 import { validatePianoIdiom } from './pianoIdiomRules';
 import { validateBigBandIdiom } from './bigBandIdiomRules';
+import { validateGuitarIdiomHard, validatePianoIdiomHard } from './idiomValidators';
 import { countMotifRecurrences } from './motifEngine';
 
 export type TestName =
@@ -77,18 +78,20 @@ function runSelfTest(
   let guitarPass = true;
   let pianoPass = true;
   let bigBandPass = true;
-  if (target === 'guitar') {
+  if (target === 'guitar' && comp.texture?.length) {
     const g = validateGuitarIdiom(notes);
-    guitarPass = g.pass;
-    tests.push({ name: 'guitar_idiom', pass: g.pass, reason: g.reason });
+    const gHard = validateGuitarIdiomHard(comp.texture);
+    guitarPass = g.pass && gHard.pass;
+    tests.push({ name: 'guitar_idiom', pass: guitarPass, reason: g.pass ? gHard.reason : g.reason });
   }
   if (target === 'piano' && comp.texture?.length === 2) {
     const rh = comp.texture[0]?.notes ?? [];
     const lh = comp.texture[1]?.notes ?? [];
     const bars = comp.phrases?.[0]?.bars ?? 8;
     const p = validatePianoIdiom({ rightHand: rh, leftHand: lh }, bars);
-    pianoPass = p.pass;
-    tests.push({ name: 'piano_idiom', pass: p.pass, reason: p.reason });
+    const pHard = validatePianoIdiomHard(comp.texture);
+    pianoPass = p.pass && pHard.pass;
+    tests.push({ name: 'piano_idiom', pass: pianoPass, reason: p.pass ? pHard.reason : p.reason });
   }
   if (target === 'big_band' && comp.texture?.length === 6) {
     const bb = validateBigBandIdiom(comp.texture);

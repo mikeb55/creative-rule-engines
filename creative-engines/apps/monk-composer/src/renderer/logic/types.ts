@@ -53,6 +53,22 @@ export interface Chord {
   offset: number;
 }
 
+/** Harmonic instruction from Barry/Monk — not final instrumental notation */
+export interface HarmonicTarget {
+  chord: Chord;
+  beatPosition: number;
+  guideTones?: number[];
+  shell?: boolean;
+  enclosure?: boolean;
+  punctuation?: boolean;
+}
+
+/** Harmonic state output by Barry/Monk engines for target-specific voicing */
+export interface HarmonicState {
+  harmony: Chord[];
+  targets: HarmonicTarget[];
+}
+
 export interface Phrase {
   notes: Note[];
   chords?: Chord[];

@@ -5,6 +5,8 @@ import { computeQuartetMetrics } from './quartetMetrics';
 import { validateGuitarIdiom } from './guitarIdiomRules';
 import { validatePianoIdiom } from './pianoIdiomRules';
 import { validateBigBandIdiom } from './bigBandIdiomRules';
+import { validateGuitarIdiomHard, validatePianoIdiomHard } from './idiomValidators';
+import { maxSimultaneity } from './musicEvents';
 
 function cellSignature(n: Note, divs = 4): string {
   const dur = Math.round((n.duration ?? 0.25) * divs);
@@ -268,7 +270,39 @@ export function evaluateGCE(comp: Composition, target: string): { scores: GCESco
 
   let overall =
     (motivicIntegrity + rhythmicPersonality + harmonicCoherence + asymmetryScore + targetIdiom + originality + afterglow) / 7 * 10;
-  if (isBarryChordal && targetIdiom >= 0.8) {
+
+  // Hard caps (Stage 8)
+  let capped = false;
+  if (target === 'guitar' && comp.texture?.length) {
+    const gHard = validateGuitarIdiomHard(comp.texture);
+    if (gHard.singleNotePct !== undefined && gHard.singleNotePct > 65) {
+      overall = Math.min(overall, 6.5);
+      capped = true;
+    }
+    if (!gHard.mixedTexture || (gHard.chordEventPct !== undefined && gHard.chordEventPct < 20)) {
+      overall = Math.min(overall, 6.0);
+      capped = true;
+    }
+  }
+  if (target === 'piano' && comp.texture?.length === 2) {
+    const pHard = validatePianoIdiomHard(comp.texture);
+    if (!pHard.pass || (pHard.lhActivityRatio !== undefined && pHard.lhActivityRatio < 0.15)) {
+      overall = Math.min(overall, 5.5);
+      capped = true;
+    }
+    const maxSim = maxSimultaneity(comp.texture);
+    const bars = comp.phrases?.[0]?.bars ?? 8;
+    if (maxSim < 3 && bars > 4) {
+      overall = Math.min(overall, 5.5);
+      capped = true;
+    }
+    if (pHard.harmonicDensity !== undefined && pHard.harmonicDensity < 0.15 && bars > 8) {
+      overall = Math.min(overall, 5.0);
+      capped = true;
+    }
+  }
+
+  if (isBarryChordal && targetIdiom >= 0.8 && !capped) {
     overall = Math.min(10, overall + 0.7);
   }
 

@@ -25,12 +25,18 @@ After building:
 
 ## Guitar and Piano Chord Export
 
-Guitar and piano targets export **polyphonic** output (dyads, triads, shell voicings), not single-note lines. If you see only single notes:
+Guitar and piano targets export **polyphonic** output (dyads, triads, shell voicings), not single-note lines. The pipeline uses an internal chord-event model (`musicEvents.ts`) and target-specific voicing engines (`guitarVoicingEngine.ts`, `pianoVoicingEngine.ts`). Hard idiom validators reject outputs that fail playability or structural requirements.
 
+**Generate fixed outputs** (with retry until pass):
+```bash
+npx tsx scripts/generate-fixed-outputs.ts
+```
+Writes `barry-guitar-fixed.musicxml`, `monk-guitar-fixed.musicxml`, `barry-piano-fixed.musicxml`, `monk-piano-fixed.musicxml` to `outputs/`.
+
+If you see only single notes:
 1. **Rebuild the app**: `npm run electron:build` (or `npm run build`)
 2. **Restart** Monk Composer
 3. **Verify** with `npm run test:voicing` — must report chord events
-4. **Generate demos**: `npm run generate-voicing-demo` — writes verified files to `outputs/` and `Documents/Monk Composer Exports`
 
 ## Exporting MusicXML
 

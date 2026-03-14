@@ -1,45 +1,16 @@
 /**
- * Guitar Voicing Engine
- * Converts single-note melody into polyphonic guitar texture:
- * triads, shell voicings, guide-tone dyads, melody + support notes.
- * Top note remains melody; support tones derived from harmony.
+ * Guitar Voicing Engine — Real chord events, mixed texture.
+ * Shells, guide-tone dyads, compact triads; melody on top when required.
+ * At least one chord event every two measures. Valid string grouping, realistic fret span.
  */
 import type { Note, Chord } from './types';
+import type { MusicEvent } from './musicEvents';
+import { guideToneDyad, shellVoicing, compactTriad, compact4 } from './voicingFamilies';
+import { eventsToTexture } from './musicEvents';
 
-const ROOT_SEMITONE: Record<string, number> = {
-  C: 0, 'C#': 1, Db: 1, D: 2, 'D#': 3, Eb: 3, E: 4, F: 5, 'F#': 6, Gb: 6,
-  G: 7, 'G#': 8, Ab: 8, A: 9, 'A#': 10, Bb: 10, B: 11,
-};
+const GUITAR_LOW = 40;
+const GUITAR_HIGH = 84;
 
-const CHORD_TONES: Record<string, number[]> = {
-  maj7: [0, 4, 7, 11],
-  m7: [0, 3, 7, 10],
-  '7': [0, 4, 7, 10],
-  dim7: [0, 3, 6, 9],
-};
-
-function chordQuality(symbol: string): string {
-  if (symbol.includes('dim')) return 'dim7';
-  if (symbol.includes('maj7')) return 'maj7';
-  if (symbol.includes('m7') || symbol.includes('min7')) return 'm7';
-  if (symbol.includes('7')) return '7';
-  return 'maj7';
-}
-
-function chordRoot(symbol: string): number {
-  const m = symbol.match(/^([A-G][#b]?)/);
-  return m ? (ROOT_SEMITONE[m[1]] ?? 0) : 0;
-}
-
-/** Returns pitch classes (0-11) of chord tones */
-function getChordTones(symbol: string): number[] {
-  const root = chordRoot(symbol);
-  const quality = chordQuality(symbol);
-  const tones = CHORD_TONES[quality] ?? CHORD_TONES.maj7;
-  return tones.map(t => (root + t) % 12);
-}
-
-/** Get chord at a given beat offset from harmony */
 function getChordAtBeat(harmony: Chord[], offset: number): Chord | undefined {
   for (let i = harmony.length - 1; i >= 0; i--) {
     if (harmony[i].offset <= offset) return harmony[i];
@@ -47,126 +18,177 @@ function getChordAtBeat(harmony: Chord[], offset: number): Chord | undefined {
   return harmony[0];
 }
 
-/** Guitar playable range (MIDI): E2=40 to C6=84 */
-const GUITAR_LOW = 40;
-const GUITAR_HIGH = 84;
+const GUITAR_STRINGS = [40, 45, 50, 55, 59, 64];
+const MAX_STRING_SPAN = 5;
+const MAX_FRET_SPAN = 6;
 
-/** Find support tones below melody from chord, guitar-playable */
-function supportTonesForMelody(
-  melodyPitch: number,
-  chord: Chord,
-  _keyRoot: number,
-  voicingType: 'dyad' | 'shell' | 'triad'
-): number[] {
-  const pcs = getChordTones(chord.symbol);
-
-  // Build candidates: chord tones in octaves below melody, guitar range
-  const candidates: number[] = [];
-  const refOct = Math.floor(melodyPitch / 12);
-  for (let oct = refOct - 2; oct <= refOct; oct++) {
-    for (const pc of pcs) {
-      const p = oct * 12 + pc;
-      if (p < melodyPitch && p >= GUITAR_LOW && p <= GUITAR_HIGH) {
-        candidates.push(p);
-      }
-    }
+function stringForPitch(p: number): number {
+  for (let s = GUITAR_STRINGS.length - 1; s >= 0; s--) {
+    if (p >= GUITAR_STRINGS[s]) return s;
   }
+  return 0;
+}
 
-  const unique = [...new Set(candidates)].sort((a, b) => b - a);
-  if (unique.length === 0) return [];
+function isPlayableGrip(pitches: number[]): boolean {
+  if (pitches.length <= 1) return true;
+  const sorted = [...pitches].sort((a, b) => a - b);
+  if (sorted.some(p => p < GUITAR_LOW || p > GUITAR_HIGH)) return false;
+  const strings = sorted.map(p => stringForPitch(p));
+  if (Math.max(...strings) - Math.min(...strings) > MAX_STRING_SPAN) return false;
+  const frets = sorted.map((p, i) => p - GUITAR_STRINGS[strings[i]]);
+  if (Math.max(...frets) - Math.min(...frets) > MAX_FRET_SPAN) return false;
+  return true;
+}
 
-  const pcOf = (midi: number) => ((midi % 12) + 12) % 12;
-
-  if (voicingType === 'dyad') {
-    const third = pcs[1];
-    const seventh = pcs[3] ?? pcs[2];
-    const out = unique.filter(p => pcOf(p) === third || pcOf(p) === seventh).slice(0, 2);
-    return out.sort((a, b) => a - b);
-  }
-
-  if (voicingType === 'shell') {
-    const root = pcs[0];
-    const third = pcs[1];
-    const seventh = pcs[3] ?? pcs[2];
-    const out: number[] = [];
-    const r = unique.find(p => pcOf(p) === root);
-    if (r) out.push(r);
-    const t = unique.find(p => pcOf(p) === third);
-    if (t && !out.includes(t)) out.push(t);
-    else {
-      const s = unique.find(p => pcOf(p) === seventh);
-      if (s && !out.includes(s)) out.push(s);
-    }
-    return out.sort((a, b) => a - b).slice(0, 2);
-  }
-
-  // triad
-  const [r, t, f] = [pcs[0], pcs[1], pcs[2]];
-  const out: number[] = [];
-  for (const u of unique) {
-    const pc = pcOf(u);
-    if (pc === r || pc === t || pc === f) out.push(u);
-  }
-  return [...new Set(out)].sort((a, b) => a - b).slice(0, 3);
+function filterSupport(melodyPitch: number, candidates: number[]): number[] {
+  return candidates
+    .map(p => Math.min(GUITAR_HIGH, Math.max(GUITAR_LOW, p)))
+    .filter(p => p < melodyPitch && p >= GUITAR_LOW)
+    .filter(p => melodyPitch - p <= 24) // keep within 2 octaves for playability
+    .slice(0, 3);
 }
 
 export interface GuitarVoicingOptions {
-  harmonizeRatio?: number; // 0.4–0.6 default
+  monkMode?: boolean;
+  barryMode?: boolean;
+  bars?: number;
   keyCenter?: string;
+  rng?: () => number;
 }
 
 /**
- * Apply guitar voicing to melody. Produces notes where simultaneous notes
- * share the same offset (chord events).
+ * Generate guitar events with true chord simultaneity.
+ * Guarantees at least one chord event every two measures.
  */
-export function applyGuitarVoicing(
+export function generateGuitarEvents(
   melody: Note[],
   harmony: Chord[],
   options: GuitarVoicingOptions = {}
-): Note[] {
-  const keyCenter = options.keyCenter ?? 'C';
-  const keyRoot = ROOT_SEMITONE[keyCenter] ?? 0;
+): MusicEvent[] {
+  const rng = options.rng ?? (() => Math.random());
+  const bars = options.bars ?? (Math.ceil((melody[melody.length - 1]?.offset ?? 0) / 4) || 8);
+  const monkMode = options.monkMode ?? false;
+  const barryMode = options.barryMode ?? true;
 
-  const result: Note[] = [];
-  const voicingTypes: ('dyad' | 'shell' | 'triad')[] = ['dyad', 'shell', 'triad'];
+  const events: MusicEvent[] = [];
+  const beatsPerBar = 4;
 
+  // Beats that MUST have a chord event (at least 1 per 2 bars)
+  const requiredChordBeats = new Set<number>();
+  for (let bar = 0; bar < bars; bar += 2) {
+    requiredChordBeats.add(bar * beatsPerBar + 1);
+  }
+
+  // Track which required beats we've covered
+  const coveredChordBeats = new Set<number>();
+
+  // Process melody notes in order
   for (let i = 0; i < melody.length; i++) {
     const n = melody[i];
-    const pitch = Math.min(GUITAR_HIGH, Math.max(GUITAR_LOW, n.pitch));
     const offset = n.offset ?? 0;
     const duration = n.duration ?? 0.5;
 
     if (n.rest) {
-      result.push({ pitch: 0, duration, offset, rest: true });
+      events.push({
+        pitches: [],
+        duration,
+        beatPosition: offset,
+        staff: 1,
+        voice: 1,
+        role: 'punctuation',
+      });
       continue;
     }
 
+    const pitch = Math.min(GUITAR_HIGH, Math.max(GUITAR_LOW, n.pitch));
     const chord = getChordAtBeat(harmony, offset);
-    const shouldHarmonize = chord && (i % 4 === 0 || (i % 8 === 2 && Math.random() < 0.4));
+    const beatFloor = Math.floor(offset);
 
-    if (!shouldHarmonize || !chord) {
-      result.push({ pitch, duration, offset, rest: false });
+    // Force chord if we're at a required beat we haven't covered
+    const mustChord = requiredChordBeats.has(beatFloor) && !coveredChordBeats.has(beatFloor);
+    const shouldChord = (chord && (mustChord || rng() < 0.72));
+
+    if (!shouldChord || !chord) {
+      events.push({
+        pitches: [pitch],
+        duration,
+        beatPosition: offset,
+        staff: 1,
+        voice: 1,
+        role: 'melody',
+      });
       continue;
     }
 
-    const voicingType = voicingTypes[i % voicingTypes.length];
-    let support = supportTonesForMelody(pitch, chord, keyRoot, voicingType);
+    coveredChordBeats.add(beatFloor);
 
-    if (support.length === 0) {
-      const fallback = pitch - 7;
-      if (fallback >= GUITAR_LOW && fallback < pitch) support = [fallback];
+    const textureRoll = rng();
+    let support: number[] = [];
+
+    if (monkMode) {
+      if (textureRoll < 0.35) support = guideToneDyad(chord, 3, '37');
+      else if (textureRoll < 0.65) support = guideToneDyad(chord, 3, '73');
+      else support = shellVoicing(chord, 3).slice(0, 2);
+    } else if (barryMode) {
+      if (textureRoll < 0.3) support = guideToneDyad(chord, 3, '37');
+      else if (textureRoll < 0.55) support = compactTriad(chord, 3).slice(0, 2);
+      else if (textureRoll < 0.8) support = shellVoicing(chord, 3).slice(0, 2);
+      else support = compactTriad(chord, 3);
+    } else {
+      support = textureRoll < 0.5 ? guideToneDyad(chord, 3, '37') : guideToneDyad(chord, 3, '73');
     }
 
-    result.push({ pitch, duration, offset, rest: false });
-    for (const p of support) {
-      result.push({ pitch: p, duration, offset, rest: false });
+    support = filterSupport(pitch, support);
+
+    if (support.length === 2 && rng() < 0.15) {
+      const ext = compact4(chord, 3).filter(p => p < pitch && p >= GUITAR_LOW);
+      const cand = [...support, ...ext].filter((v, i, a) => a.indexOf(v) === i).slice(0, 3);
+      if (isPlayableGrip([pitch, ...cand])) support = cand;
+    }
+
+    let finalPitches = [pitch, ...support].sort((a, b) => a - b);
+    if (!isPlayableGrip(finalPitches) && support.length > 0) {
+      finalPitches = [pitch, ...support.slice(0, 1)].sort((a, b) => a - b);
+    }
+
+    const role = finalPitches.length >= 3 ? 'triad' : finalPitches.length === 2 ? 'shell' : 'melody';
+    events.push({
+      pitches: finalPitches,
+      duration,
+      beatPosition: offset,
+      staff: 1,
+      voice: 1,
+      role: role as 'melody' | 'shell' | 'triad' | 'voicing' | 'bass' | 'punctuation',
+    });
+  }
+
+  // Fill any uncovered required chord beats with shell stabs (no melody)
+  for (const beat of requiredChordBeats) {
+    if (coveredChordBeats.has(beat)) continue;
+    const chord = getChordAtBeat(harmony, beat);
+    if (!chord) continue;
+    const shell = shellVoicing(chord, 2).filter(p => p >= GUITAR_LOW && p <= GUITAR_HIGH);
+    if (shell.length >= 2 && isPlayableGrip(shell)) {
+      events.push({
+        pitches: shell,
+        duration: 0.5,
+        beatPosition: beat,
+        staff: 1,
+        voice: 1,
+        role: 'shell',
+      });
     }
   }
 
-  return result.sort((a, b) => {
-    const oa = a.offset ?? 0;
-    const ob = b.offset ?? 0;
-    if (oa !== ob) return oa - ob;
-    return (b.pitch ?? 0) - (a.pitch ?? 0);
-  });
+  events.sort((a, b) => a.beatPosition - b.beatPosition);
+  return events;
+}
+
+export function guitarEventsToTexture(
+  melody: Note[],
+  harmony: Chord[],
+  options: GuitarVoicingOptions = {}
+): { voice: number; notes: Note[] }[] {
+  const events = generateGuitarEvents(melody, harmony, options);
+  return eventsToTexture(events);
 }

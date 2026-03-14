@@ -30,16 +30,24 @@ function durationToType(duration: number): string {
   return '16th';
 }
 
-function noteToXml(n: Note, divs: number, indent = '    ', isChord = false, staff?: number): string {
+function noteToXml(
+  n: Note,
+  divs: number,
+  indent = '    ',
+  isChord = false,
+  staff?: number,
+  voice?: number
+): string {
   const dur = Math.max(1, Math.round(n.duration * divs));
   const staffTag = staff != null ? `<staff>${staff}</staff>` : '';
+  const voiceTag = voice != null ? `<voice>${voice}</voice>` : '';
   if (n.rest) {
-    return `${indent}<note>${staffTag}<rest/><duration>${dur}</duration><type>${durationToType(n.duration)}</type></note>`;
+    return `${indent}<note>${staffTag}${voiceTag}<rest/><duration>${dur}</duration><type>${durationToType(n.duration)}</type></note>`;
   }
   const { step, octave, alter } = midiToStepOctave(n.pitch);
   const alterXml = alter ? `<alter>${alter}</alter>` : '';
   const chordTag = isChord ? '<chord/>' : '';
-  return `${indent}<note>${chordTag}${staffTag}<pitch><step>${step}</step>${alterXml}<octave>${octave}</octave></pitch><duration>${dur}</duration><type>${durationToType(n.duration)}</type></note>`;
+  return `${indent}<note>${chordTag}${staffTag}${voiceTag}<pitch><step>${step}</step>${alterXml}<octave>${octave}</octave></pitch><duration>${dur}</duration><type>${durationToType(n.duration)}</type></note>`;
 }
 
 function escapeXml(s: string): string {
@@ -51,12 +59,17 @@ function escapeXml(s: string): string {
     .replace(/'/g, '&apos;');
 }
 
+export type MusicXmlVersion = '3.0' | '4.0';
+
 export function compositionToMusicXML(
   comp: Composition,
   title: string,
-  options?: { keyCenter?: string; meter?: string; target?: string }
+  options?: { keyCenter?: string; meter?: string; target?: string; musicXmlVersion?: MusicXmlVersion }
 ): string {
-  const rawNotes = (comp.texture?.flatMap(t => t.notes) ?? comp.motif ?? []).filter(n => !n.rest);
+  const version: MusicXmlVersion = options?.musicXmlVersion ?? '3.0';
+  const rawNotes = (comp.texture?.flatMap(t =>
+    (t.notes ?? []).map(n => ({ ...n, _voice: t.voice }))
+  ) ?? comp.motif?.map(n => ({ ...n, _voice: 1 })) ?? []).filter(n => !n.rest) as (Note & { offset?: number; _voice?: number })[];
   const divs = 4;
   const keyCenter = options?.keyCenter ?? 'C';
   const meter = options?.meter ?? '4/4';
@@ -112,6 +125,7 @@ export function compositionToMusicXML(
   }
 
   if (target === 'big_band' && comp.texture?.length === 6) {
+    const version: MusicXmlVersion = options?.musicXmlVersion ?? '3.0';
     const partNoteArrays = comp.texture.map(t => {
       let run = 0;
       return (t.notes ?? []).map(n => {
@@ -127,30 +141,35 @@ export function compositionToMusicXML(
         if (m > maxMeasureBB) maxMeasureBB = m;
       }
     }
-    return buildBigBandXml(partNoteArrays, maxMeasureBB, title, divs, fifths, beats, beatType, beats);
+    return buildBigBandXml(partNoteArrays, maxMeasureBB, title, divs, fifths, beats, beatType, beats, version);
   }
 
   const useGrandStaff = target === 'piano';
   return buildSinglePartXml(
     notes, measureMap, measureIndices, maxMeasure,
     title, divs, fifths, beats, beatType, beatsPerMeasure,
-    useGrandStaff
+    useGrandStaff, target, version, comp.texture
   );
 }
 
-/** Group notes into chords (same offset+duration) and single notes; groups ordered by offset */
-function groupNotesForChords(notes: (Note & { offset: number })[]): (Note & { offset: number })[][] {
-  const byKey = new Map<string, (Note & { offset: number })[]>();
+/** Group notes into chords (same offset+duration, and voice for piano) */
+function groupNotesForChords(
+  notes: (Note & { offset: number; _voice?: number })[],
+  byVoice = false
+): (Note & { offset: number; _voice?: number })[][] {
+  const byKey = new Map<string, (Note & { offset: number; _voice?: number })[]>();
   const round = (x: number) => Math.round(x * 1000) / 1000;
   for (const n of notes) {
-    const key = `${round(n.offset)}_${round(n.duration ?? 0)}`;
+    const voice = byVoice ? (n._voice ?? 1) : 0;
+    const key = `${round(n.offset)}_${round(n.duration ?? 0)}_${voice}`;
     if (!byKey.has(key)) byKey.set(key, []);
     byKey.get(key)!.push(n);
   }
   const groups = [...byKey.entries()].sort((a, b) => {
-    const oa = parseFloat(a[0].split('_')[0]);
-    const ob = parseFloat(b[0].split('_')[0]);
-    return oa - ob;
+    const [oa, , va] = a[0].split('_');
+    const [ob, , vb] = b[0].split('_');
+    if (parseFloat(oa) !== parseFloat(ob)) return parseFloat(oa) - parseFloat(ob);
+    return (parseInt(va, 10) || 0) - (parseInt(vb, 10) || 0);
   }).map(([, g]) => g);
   return groups.map(group =>
     group.sort((a, b) => (b.pitch ?? 0) - (a.pitch ?? 0))
@@ -160,8 +179,8 @@ function groupNotesForChords(notes: (Note & { offset: number })[]): (Note & { of
 const MIDDLE_C = 60;
 
 function buildSinglePartXml(
-  _notes: (Note & { offset: number })[],
-  measureMap: Map<number, (Note & { offset: number })[]>,
+  _notes: (Note & { offset: number; _voice?: number })[],
+  measureMap: Map<number, (Note & { offset: number; _voice?: number })[]>,
   _measureIndices: number[],
   maxMeasure: number,
   title: string,
@@ -170,35 +189,48 @@ function buildSinglePartXml(
   beats: number,
   beatType: number,
   beatsPerMeasure: number,
-  useGrandStaff = false
+  useGrandStaff = false,
+  target = 'guitar',
+  version: MusicXmlVersion = '3.0',
+  _texture?: { voice: number; notes: Note[] }[]
 ): string {
-  const partList = '<part-list><score-part id="P1"><part-name>Part 1</part-name></score-part></part-list>';
+  const partName = target === 'piano' ? 'Piano' : target === 'guitar' ? 'Guitar' : 'Part 1';
+  const partList = `<part-list><score-part id="P1"><part-name>${escapeXml(partName)}</part-name></score-part></part-list>`;
   const measures: string[] = [];
+  const stavesAttr = useGrandStaff ? '<staves>2</staves>' : '';
   const clefAttrs = useGrandStaff
     ? `<clef number="1"><sign>G</sign><line>2</line></clef><clef number="2"><sign>F</sign><line>4</line></clef>`
     : `<clef><sign>G</sign><line>2</line></clef>`;
   for (let m = 0; m <= maxMeasure; m++) {
-    const msrNotes = (measureMap.get(m) ?? []).sort((a, b) => a.offset - b.offset);
+    const msrNotes = (measureMap.get(m) ?? []).sort((a, b) => {
+      if (a.offset !== b.offset) return a.offset - b.offset;
+      return (a._voice ?? 1) - (b._voice ?? 1);
+    });
     const attrs = m === 0
-      ? `<attributes><divisions>${divs}</divisions><key><fifths>${fifths}</fifths></key><time><beats>${beats}</beats><beat-type>${beatType}</beat-type></time>${clefAttrs}</attributes>`
+      ? `<attributes><divisions>${divs}</divisions><key><fifths>${fifths}</fifths></key><time><beats>${beats}</beats><beat-type>${beatType}</beat-type></time>${stavesAttr}${clefAttrs}</attributes>`
       : '';
-    const groups = groupNotesForChords(msrNotes);
+    const groups = groupNotesForChords(msrNotes, useGrandStaff);
     const notesXml = groups.flatMap(g => {
-      // Grand staff: assign staff per note by pitch (bass < middle C, treble >= middle C)
-      const staffFor = (n: Note & { offset: number }) =>
-        useGrandStaff && !n.rest ? (n.pitch >= MIDDLE_C ? 1 : 2) : undefined;
-      const topPitch = g.length > 0 ? Math.max(...g.map(n => n.pitch ?? 0)) : 60;
-      const defaultStaff = useGrandStaff ? (topPitch >= MIDDLE_C ? 1 : 2) : undefined;
-      return g.map((n, i) => noteToXml(n, divs, '      ', i > 0, staffFor(n) ?? defaultStaff));
+      const voice = useGrandStaff ? (g[0]?._voice ?? 1) : undefined;
+      const staffFor = (n: Note & { offset: number; _voice?: number }) =>
+        useGrandStaff && !n.rest ? (n._voice ?? (n.pitch >= MIDDLE_C ? 1 : 2)) : undefined;
+      const defaultStaff = useGrandStaff ? (g[0]?._voice ?? (g.length > 0 && Math.max(...g.map(n => n.pitch ?? 0)) >= MIDDLE_C ? 1 : 2)) : undefined;
+      return g.map((n, i) => noteToXml(n, divs, '      ', i > 0, staffFor(n) ?? defaultStaff, voice));
     }).join('\n');
     const restXml = msrNotes.length === 0
-      ? noteToXml({ pitch: 60, duration: beatsPerMeasure, rest: true }, divs)
+      ? noteToXml({ pitch: 60, duration: beatsPerMeasure, rest: true }, divs, '      ', false, undefined, useGrandStaff ? 1 : undefined)
       : '';
     measures.push(`    <measure number="${m + 1}">\n${attrs ? '      ' + attrs + '\n' : ''}${notesXml || restXml}\n    </measure>`);
   }
+  const dtd = version === '3.0'
+    ? '-//Recordare//DTD MusicXML 3.0 Partwise//EN'
+    : '-//Recordare//DTD MusicXML 4.0 Partwise//EN';
+  const dtdUrl = version === '3.0'
+    ? 'http://www.musicxml.org/dtds/partwise.dtd'
+    : 'http://www.musicxml.org/dtds/partwise.dtd';
   return `<?xml version="1.0" encoding="UTF-8"?>
-<!DOCTYPE score-partwise PUBLIC "-//Recordare//DTD MusicXML 4.0 Partwise//EN" "http://www.musicxml.org/dtds/partwise.dtd">
-<score-partwise version="4.0">
+<!DOCTYPE score-partwise PUBLIC "${dtd}" "${dtdUrl}">
+<score-partwise version="${version}">
   <work><work-title>${escapeXml(title)}</work-title></work>
   ${partList}
   <part id="P1">
@@ -216,7 +248,8 @@ function buildBigBandXml(
   fifths: number,
   beats: number,
   beatType: number,
-  beatsPerMeasure: number
+  beatsPerMeasure: number,
+  version: MusicXmlVersion = '3.0'
 ): string {
   const partMeasureMap: Record<string, Map<number, (Note & { offset: number })[]>> = {};
   const partIds = ['P1', 'P2', 'P3', 'P4', 'P5', 'P6'];
@@ -232,7 +265,7 @@ function buildBigBandXml(
   }
 
   const partList = BIG_BAND_TEMPLATE.map(p =>
-    `<score-part id="${p.id}"><part-name>${escapeXml(p.name)}</part-name></score-part>`
+    `<score-part id="${p.id}"><part-name>${escapeXml(p.name)}</part-name><part-abbreviation>${escapeXml(p.abbreviation)}</part-abbreviation></score-part>`
   ).join('');
   const partXmls: string[] = [];
 
@@ -260,9 +293,12 @@ function buildBigBandXml(
     partXmls.push(`  <part id="${id}">\n${measures.join('\n')}\n  </part>`);
   }
 
+  const dtd = version === '3.0'
+    ? '-//Recordare//DTD MusicXML 3.0 Partwise//EN'
+    : '-//Recordare//DTD MusicXML 4.0 Partwise//EN';
   return `<?xml version="1.0" encoding="UTF-8"?>
-<!DOCTYPE score-partwise PUBLIC "-//Recordare//DTD MusicXML 4.0 Partwise//EN" "http://www.musicxml.org/dtds/partwise.dtd">
-<score-partwise version="4.0">
+<!DOCTYPE score-partwise PUBLIC "${dtd}" "http://www.musicxml.org/dtds/partwise.dtd">
+<score-partwise version="${version}">
   <work><work-title>${escapeXml(title)}</work-title></work>
   <part-list>${partList}</part-list>
 ${partXmls.join('\n')}

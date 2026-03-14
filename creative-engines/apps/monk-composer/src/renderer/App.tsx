@@ -186,6 +186,7 @@ export function App() {
       keyCenter: global.keyCenter,
       meter: global.meter,
       target,
+      musicXmlVersion: '3.0',
     });
     if (!validateMusicXML(xml)) return { success: false, path: '' };
     const chordCount = (xml.match(/<chord\/>/g) ?? []).length;

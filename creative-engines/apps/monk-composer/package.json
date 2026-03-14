@@ -21,7 +21,8 @@
     "test:voicing": "npx tsx scripts/test-voicing-export.ts",
     "generate-voicing-demo": "npx tsx scripts/generate-voicing-demo.ts",
     "generate-gui-test-exports": "npx tsx scripts/generate-gui-test-exports.ts",
-    "generate-idiomatic": "npx tsx scripts/generate-idiomatic.ts"
+    "generate-idiomatic": "npx tsx scripts/generate-idiomatic.ts",
+    "parse-beatrice-template": "npx tsx scripts/parse-beatrice-template.ts"
   },
   "dependencies": {
     "react": "^18.2.0",

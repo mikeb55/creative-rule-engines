@@ -1,7 +1,7 @@
 import type { Note, Chord, BarryControls, MonkControls, GlobalControls } from './types';
 import { generateQuartet } from './quartetEngine';
-import { applyGuitarIdiom } from './guitarIdiomRules';
-import { applyPianoIdiom } from './pianoIdiomRules';
+import { guitarEventsToTexture } from './guitarVoicingEngine';
+import { pianoEventsToTexture } from './pianoVoicingEngine';
 import { applyBigBandIdiom } from './bigBandIdiomRules';
 
 interface TargetOptions {
@@ -25,25 +25,22 @@ export function translateToTarget(
   const barryMode = options.engine === 'barry' || options.engine === 'barry_monk';
 
   if (target === 'guitar') {
-    const idiomNotes = applyGuitarIdiom(notes, harmony, {
+    const texture = guitarEventsToTexture(notes, harmony, {
       monkMode,
       barryMode,
-      harmonizeRatio: barryMode ? 0.5 : 0.4,
     });
-    return [
-      {
-        voice: 1,
-        notes: idiomNotes.map(n => ({
-          ...n,
-          pitch: n.rest ? 0 : Math.min(84, Math.max(40, n.pitch)),
-        })),
-      },
-    ];
+    return texture.map(t => ({
+      voice: t.voice,
+      notes: t.notes.map(n => ({
+        ...n,
+        pitch: n.rest ? 0 : Math.min(84, Math.max(40, n.pitch)),
+      })),
+    }));
   }
 
   if (target === 'piano') {
     const bars = options.global?.bars ?? (Math.ceil((notes[notes.length - 1]?.offset ?? 0) / 4) || 8);
-    const { rightHand, leftHand } = applyPianoIdiom(notes, harmony, {
+    const texture = pianoEventsToTexture(notes, harmony, {
       bars,
       monkMode,
       barryMode,
@@ -52,10 +49,7 @@ export function translateToTarget(
       ...n,
       pitch: n.rest ? 0 : Math.min(88, Math.max(21, n.pitch)),
     });
-    return [
-      { voice: 1, notes: rightHand.map(clamp) },
-      { voice: 2, notes: leftHand.map(clamp) },
-    ];
+    return texture.map(t => ({ voice: t.voice, notes: t.notes.map(clamp) }));
   }
 
   if (target === 'string_quartet') {
