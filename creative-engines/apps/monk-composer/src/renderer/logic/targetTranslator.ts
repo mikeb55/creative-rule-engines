@@ -15,29 +15,40 @@ interface TargetOptions {
   revisionSeed?: number;
 }
 
+export type TranslateResult =
+  | { texture: { voice: number; notes: Note[] }[]; guitarDiagnostics?: never }
+  | { texture: { voice: number; notes: Note[] }[]; guitarDiagnostics: { compPattern: string; usedFamilyIds: string[] } };
+
 export function translateToTarget(
   layer: { voice: number; notes: Note[] },
   target: string,
   options: TargetOptions
-): { voice: number; notes: Note[] }[] {
+): TranslateResult {
   const { notes } = layer;
   const harmony = options.harmony ?? [];
   const monkMode = options.engine === 'monk' || options.engine === 'barry_monk';
   const barryMode = options.engine === 'barry' || options.engine === 'barry_monk';
 
   if (target === 'guitar') {
-    const texture = guitarEventsToTexture(notes, harmony, {
+    const result = guitarEventsToTexture(notes, harmony, {
       monkMode,
       barryMode,
       revisionSeed: options.revisionSeed,
     });
-    return texture.map(t => ({
+    const texture = result.texture.map(t => ({
       voice: t.voice,
       notes: t.notes.map(n => ({
         ...n,
         pitch: n.rest ? 0 : Math.min(84, Math.max(40, n.pitch)),
       })),
     }));
+    return {
+      texture,
+      guitarDiagnostics: {
+        compPattern: result.compPattern,
+        usedFamilyIds: result.usedFamilyIds,
+      },
+    };
   }
 
   if (target === 'piano') {
@@ -51,7 +62,7 @@ export function translateToTarget(
       ...n,
       pitch: n.rest ? 0 : Math.min(88, Math.max(21, n.pitch)),
     });
-    return texture.map(t => ({ voice: t.voice, notes: t.notes.map(clamp) }));
+    return { texture: texture.map(t => ({ voice: t.voice, notes: t.notes.map(clamp) })) };
   }
 
   if (target === 'string_quartet') {
@@ -71,12 +82,14 @@ export function translateToTarget(
         wrongRightIntensity: options.monk?.wrongRightIntensity ?? 0.5,
       },
     });
-    return [
-      { voice: 1, notes: result.vn1 },
-      { voice: 2, notes: result.vn2 },
-      { voice: 3, notes: result.viola },
-      { voice: 4, notes: result.cello },
-    ];
+    return {
+      texture: [
+        { voice: 1, notes: result.vn1 },
+        { voice: 2, notes: result.vn2 },
+        { voice: 3, notes: result.viola },
+        { voice: 4, notes: result.cello },
+      ],
+    };
   }
 
   if (target === 'big_band') {
@@ -90,10 +103,10 @@ export function translateToTarget(
       ...n,
       pitch: n.rest ? 0 : Math.min(88, Math.max(21, n.pitch)),
     });
-    return parts.map(p => ({ voice: p.voice, notes: p.notes.map(clamp) }));
+    return { texture: parts.map(p => ({ voice: p.voice, notes: p.notes.map(clamp) })) };
   }
 
-  return [layer];
+  return { texture: [layer] };
 }
 
 export function getQuartetDiagnosticsFromTexture(

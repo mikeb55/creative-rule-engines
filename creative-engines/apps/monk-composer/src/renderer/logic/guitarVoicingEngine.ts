@@ -1,22 +1,25 @@
 /**
- * Guitar Voicing Engine — Fretboard-aware, dictionary-based only.
- * No pitch stacking. Uses guitarVoicingDictionary, fretboardMapper, voice-leading, rhythm templates.
+ * Guitar Voicing Engine — Fretboard-first, voicing-family only.
+ * No pitch stacking. All chords from guitarVoicingFamilies via guitarFretboardEngine.
+ * Voice-leading, comp patterns, texture mix enforced.
  */
 import type { Note, Chord } from './types';
 import type { MusicEvent } from './musicEvents';
 import { eventsToTexture } from './musicEvents';
-import { getVoicingsForChord } from './fretboardMapper';
 import { chooseNextVoicing, type VoiceLeadingContext } from './guitarVoiceLeading';
 import {
-  RHYTHM_TEMPLATES,
+  COMP_PATTERNS,
   getChordBeatsForBar,
   type CompPattern,
-} from './guitarRhythmTemplates';
-import { buildPhrases, getPhraseZone } from './phraseTemplates';
+  type CompPatternId,
+} from './guitarCompPatterns';
+import { buildPhrases } from './phraseTemplates';
+import type { VoicingFamilyId } from './guitarVoicingFamilies';
 
 const GUITAR_LOW = 40;
 const GUITAR_HIGH = 84;
 const BEATS_PER_BAR = 4;
+const MAX_SINGLE_NOTE_MEASURES = 3;
 
 function getChordAtBeat(harmony: Chord[], offset: number): Chord | undefined {
   for (let i = harmony.length - 1; i >= 0; i--) {
@@ -34,32 +37,40 @@ export interface GuitarVoicingOptions {
   revisionSeed?: number;
 }
 
+export interface GuitarGenerationResult {
+  events: MusicEvent[];
+  compPattern: CompPatternId;
+  usedFamilyIds: VoicingFamilyId[];
+}
+
+const FAMILY_ORDERS: VoicingFamilyId[][] = [
+  ['shell', 'guideTone', 'triad'],
+  ['guideTone', 'shell', 'triad'],
+  ['triad', 'shell', 'guideTone'],
+  ['shell', 'triad', 'guideTone'],
+  ['guideTone', 'triad', 'shell'],
+];
+
 /**
- * Generate guitar events from dictionary voicings only.
- * Rhythm from templates. Voice-leading between chords.
+ * Generate guitar events from voicing families only. No pitch stacking.
+ * Texture mix: at least one chord every 2 measures, max 3 consecutive single-note measures.
  */
 export function generateGuitarEvents(
   melody: Note[],
   harmony: Chord[],
   options: GuitarVoicingOptions = {}
-): MusicEvent[] {
+): GuitarGenerationResult {
   const rng = options.rng ?? (() => Math.random());
   const seed = options.revisionSeed ?? 0;
   const bars = options.bars ?? (Math.ceil((melody[melody.length - 1]?.offset ?? 0) / 4) || 8);
   const { starts: phraseStarts, lengths: phraseLengths } = buildPhrases(bars, rng);
 
-  const pattern: CompPattern = RHYTHM_TEMPLATES[(seed % RHYTHM_TEMPLATES.length + RHYTHM_TEMPLATES.length) % RHYTHM_TEMPLATES.length].pattern;
+  const pattern = COMP_PATTERNS[(seed % COMP_PATTERNS.length + COMP_PATTERNS.length) % COMP_PATTERNS.length];
   const voiceContext: VoiceLeadingContext = { lastVoicing: null, lastTopPitch: null };
   const events: MusicEvent[] = [];
+  const usedFamilyIds = new Set<VoicingFamilyId>();
 
-  const familyOrder: ('shell' | 'guideTone' | 'triad')[][] = [
-    ['shell', 'guideTone', 'triad'],
-    ['guideTone', 'shell', 'triad'],
-    ['triad', 'shell', 'guideTone'],
-    ['shell', 'triad', 'guideTone'],
-    ['guideTone', 'triad', 'shell'],
-  ];
-  const families = familyOrder[seed % familyOrder.length];
+  const families = FAMILY_ORDERS[seed % FAMILY_ORDERS.length];
   let singleNoteRun = 0;
 
   for (let i = 0; i < melody.length; i++) {
@@ -100,13 +111,14 @@ export function generateGuitarEvents(
     const globalChordBeats = chordBeats.map(b => bar * BEATS_PER_BAR + b);
 
     const nearChordBeat = globalChordBeats.some(cb => Math.abs(cb - offset) < 0.6);
-    const forceChord = singleNoteRun >= 4;
+    const forceChord = singleNoteRun >= MAX_SINGLE_NOTE_MEASURES * 4;
     const onStrongBeat = Math.abs(offset % 1) < 0.2 || Math.abs(offset % 1 - 0.5) < 0.2;
     const shouldChord = chord && (nearChordBeat || forceChord || onStrongBeat) && rng() < 0.7;
 
     if (shouldChord && chord) {
       const voicing = chooseNextVoicing(chord, voiceContext, families);
       if (voicing && voicing.pitches.length >= 2) {
+        usedFamilyIds.add(voicing.familyId);
         voiceContext.lastVoicing = voicing;
         voiceContext.lastTopPitch = Math.max(...voicing.pitches);
         events.push({
@@ -157,6 +169,7 @@ export function generateGuitarEvents(
       if (chord) {
         const voicing = chooseNextVoicing(chord, voiceContext, ['shell', 'guideTone']);
         if (voicing) {
+          usedFamilyIds.add(voicing.familyId);
           voiceContext.lastVoicing = voicing;
           voiceContext.lastTopPitch = Math.max(...voicing.pitches);
           events.push({
@@ -173,14 +186,28 @@ export function generateGuitarEvents(
   }
 
   events.sort((a, b) => a.beatPosition - b.beatPosition);
-  return events;
+  return {
+    events,
+    compPattern: pattern.id,
+    usedFamilyIds: [...usedFamilyIds],
+  };
+}
+
+export interface GuitarTextureResult {
+  texture: { voice: number; notes: Note[] }[];
+  compPattern: CompPatternId;
+  usedFamilyIds: VoicingFamilyId[];
 }
 
 export function guitarEventsToTexture(
   melody: Note[],
   harmony: Chord[],
   options: GuitarVoicingOptions = {}
-): { voice: number; notes: Note[] }[] {
-  const events = generateGuitarEvents(melody, harmony, options);
-  return eventsToTexture(events);
+): GuitarTextureResult {
+  const result = generateGuitarEvents(melody, harmony, options);
+  return {
+    texture: eventsToTexture(result.events),
+    compPattern: result.compPattern,
+    usedFamilyIds: result.usedFamilyIds,
+  };
 }

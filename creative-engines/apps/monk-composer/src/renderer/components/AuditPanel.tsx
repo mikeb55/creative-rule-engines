@@ -111,11 +111,17 @@ export function AuditPanel({ scores, warnings, revisionCount, composition, instr
                   )}
                   {instrumentTarget === 'guitar' && (() => {
                     const g = validateGuitarIdiomHard(composition.texture);
+                    const diag = composition.guitarDiagnostics;
                     return (
                       <>
-                        <div className="flex-between" style={{ marginBottom: 4 }}><span className="muted">Guitar grip validity</span><span>{g.gripValidity != null ? (g.gripValidity * 100).toFixed(0) + '%' : '—'}</span></div>
+                        <div className="flex-between" style={{ marginBottom: 4 }}><span className="muted">Voicing families</span><span>{diag?.usedFamilyIds?.join(', ') ?? '—'}</span></div>
+                        <div className="flex-between" style={{ marginBottom: 4 }}><span className="muted">Comp pattern</span><span>{diag?.compPattern ?? '—'}</span></div>
+                        <div className="flex-between" style={{ marginBottom: 4 }}><span className="muted">Grip validity</span><span>{g.gripValidity != null ? (g.gripValidity * 100).toFixed(0) + '%' : '—'}</span></div>
                         <div className="flex-between" style={{ marginBottom: 4 }}><span className="muted">Fret span (avg/max)</span><span>{g.avgFretSpan != null && g.maxFretSpan != null ? `${g.avgFretSpan.toFixed(1)} / ${g.maxFretSpan}` : '—'}</span></div>
-                        <div className="flex-between" style={{ marginBottom: 4 }}><span className="muted">Validation</span><span className={g.pass ? 'success-text' : ''}>{g.pass ? 'PASS' : (g.reason ?? '—')}</span></div>
+                        <div className="flex-between" style={{ marginBottom: 4 }}><span className="muted">Chord event %</span><span>{g.chordEventPct != null ? g.chordEventPct.toFixed(1) + '%' : '—'}</span></div>
+                        <div className="flex-between" style={{ marginBottom: 4 }}><span className="muted">Voice-leading dist</span><span>{g.voiceLeadingDistance != null ? g.voiceLeadingDistance.toFixed(1) : '—'}</span></div>
+                        <div className="flex-between" style={{ marginBottom: 4 }}><span className="muted">Validator</span><span className={g.pass ? 'success-text' : ''}>{g.pass ? 'PASS' : (g.reason ?? '—')}</span></div>
+                        <div className="flex-between" style={{ marginBottom: 4 }}><span className="muted">GCE score</span><span>{selfTestReport.gce}</span></div>
                       </>
                     );
                   })()}

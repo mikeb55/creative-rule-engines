@@ -2,6 +2,28 @@
 
 ## [Unreleased]
 
+### 2025-03-11 — Guitar Notation Correction: Fretboard-First Voicing System (v0.9.0)
+
+- **Fretboard-first guitar generation** — All chords come from real fretboard voicing families. No pitch stacking. Pipeline: `guitarVoicingFamilies` → `guitarFretboardEngine` → `guitarVoiceLeading` → `guitarCompPatterns`.
+
+- **Voicing family library** — `guitarVoicingFamilies.ts` defines explicit families: shells (6-4-3, 5-4-3), triads (1-2-3, 2-3-4, 3-4-5), drop-2 (1-2-3-4, 2-3-4-5), guide-tone dyads (3rd+7th), quartal grips (1-2-3, 2-3-4). Each family: string set, interval structure, allowable chord types, max fret span ≤5.
+
+- **Fretboard position engine** — `guitarFretboardEngine.ts` maps harmonic targets to fretboard positions, enforces playable stretches, adjacent-string grips, rejects top-voice leaps > perfect fourth.
+
+- **Voice-leading** — `guitarVoiceLeading.ts` selects next voicing by minimal fret displacement, common tones, upper voice ≤ third when possible, register jump ≤ fifth.
+
+- **Comp pattern system** — `guitarCompPatterns.ts` defines PATTERN_A (beat-2/beat-4 shell), PATTERN_B (syncopated off-beat), PATTERN_C (chord + melodic fragment), PATTERN_D (drop-2 sustained hit). One pattern per phrase; no random chord placement.
+
+- **Texture mix** — At least one chord every 2 measures; max 3 consecutive single-note measures; phrase includes at least 2 texture types.
+
+- **Guitar validation** — Fail if voicing not in family library, fret span > 5, chord simultaneity incorrect, monophonic >70%, no recurring voicing family.
+
+- **MusicXML export** — Chord notes share identical beat positions; `<chord/>` tags for simultaneous notes; guitar single staff. Reject if simultaneity collapses.
+
+- **Audit panel** — Guitar shows voicing family usage, fret span, chord event %, comp pattern, voice-leading distance, validator result, GCE score.
+
+- **Idiomatic outputs** — `npx tsx scripts/generate-idiomatic-guitar.ts` produces `barry-guitar-idiomatic.musicxml`, `monk-guitar-idiomatic.musicxml`.
+
 ### 2025-03-11 — Replace Guitar Stacking with Fretboard-Aware Voicing System (v0.8.0)
 
 - **Fretboard-aware voicing system** — Guitar generator no longer uses piano-style pitch stacking. All chord generation comes from predefined voicing families mapped to fretboard shapes.

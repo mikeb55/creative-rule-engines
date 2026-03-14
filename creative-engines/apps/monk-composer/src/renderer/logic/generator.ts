@@ -6,6 +6,7 @@ import type {
   MonkControls,
   GlobalControls,
   QuartetDiagnostics,
+  GuitarDiagnostics,
   Note,
 } from './types';
 import { generateIIVProgression, generateBebopLine, addDiminishedPassing } from './barryRules';
@@ -58,6 +59,7 @@ export function generateDraft(
 
   let texture: { voice: number; notes: Note[] }[];
   let quartetDiagnostics: QuartetDiagnostics | undefined;
+  let guitarDiagnostics: GuitarDiagnostics | undefined;
 
   if (target === 'string_quartet') {
     const result = generateQuartet({
@@ -113,7 +115,7 @@ export function generateDraft(
       exposedDuoTrioBars: result.diagnostics?.exposedDuoTrioBars,
     };
   } else {
-    texture = translateToTarget(
+    const translated = translateToTarget(
       { voice: 1, notes: motif },
       target,
       {
@@ -125,6 +127,13 @@ export function generateDraft(
         revisionSeed: opts?.revisionSeed,
       }
     );
+    texture = translated.texture;
+    guitarDiagnostics = translated.guitarDiagnostics
+      ? {
+          compPattern: translated.guitarDiagnostics.compPattern,
+          usedFamilyIds: translated.guitarDiagnostics.usedFamilyIds,
+        }
+      : undefined;
   }
 
   const phrases = [{ notes: motif, bars }];
@@ -135,6 +144,7 @@ export function generateDraft(
     motif,
     texture,
     quartetDiagnostics,
+    guitarDiagnostics,
     metadata: {
       engine,
       target,

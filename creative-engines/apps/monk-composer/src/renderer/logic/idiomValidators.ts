@@ -24,6 +24,7 @@ export interface GuitarValidatorResult {
   singleNotePct?: number;
   avgFretSpan?: number;
   maxFretSpan?: number;
+  voiceLeadingDistance?: number;
 }
 
 export function validateGuitarIdiomHard(
@@ -40,6 +41,11 @@ export function validateGuitarIdiomHard(
   }
 
   const chordEvents = [...byOffset.values()].filter(g => g.length >= 2);
+  const countBySize = new Map<number, number>();
+  for (const g of chordEvents) {
+    countBySize.set(g.length, (countBySize.get(g.length) ?? 0) + 1);
+  }
+  const recurringFamily = [...countBySize.values()].some(c => c >= 2);
   const totalEvents = byOffset.size;
   const chordEventPct = totalEvents > 0 ? (chordEvents.length / totalEvents) * 100 : 0;
   const singleNoteCount = [...byOffset.values()].filter(g => g.length === 1).length;
@@ -73,6 +79,22 @@ export function validateGuitarIdiomHard(
   const bars = totalEvents > 0 ? Math.ceil(Math.max(...byOffset.keys()) / 4) : 0;
   const minChordEvents = Math.ceil(bars / 2);
   if (chordEvents.length < minChordEvents) return { pass: false, reason: 'Chord events < 1 per 2 bars', chordEventPct, gripValidity, singleNotePct, avgFretSpan, maxFretSpan };
+  if (!recurringFamily) return { pass: false, reason: 'No recurring voicing family', chordEventPct, gripValidity, singleNotePct, avgFretSpan, maxFretSpan };
+
+  const sortedOffsets = [...byOffset.keys()].sort((a, b) => a - b);
+  const chordOffsets = sortedOffsets.filter(o => (byOffset.get(o) ?? []).length >= 2);
+  let voiceLeadingDistance = 0;
+  if (chordOffsets.length >= 2) {
+    const jumps: number[] = [];
+    for (let i = 1; i < chordOffsets.length; i++) {
+      const prev = byOffset.get(chordOffsets[i - 1]) ?? [];
+      const curr = byOffset.get(chordOffsets[i]) ?? [];
+      if (prev.length >= 2 && curr.length >= 2) {
+        jumps.push(Math.abs(Math.max(...curr) - Math.max(...prev)));
+      }
+    }
+    voiceLeadingDistance = jumps.length > 0 ? jumps.reduce((a, b) => a + b, 0) / jumps.length : 0;
+  }
 
   return {
     pass: true,
@@ -82,6 +104,7 @@ export function validateGuitarIdiomHard(
     singleNotePct,
     avgFretSpan,
     maxFretSpan,
+    voiceLeadingDistance,
   };
 }
 

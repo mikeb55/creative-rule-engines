@@ -1,15 +1,20 @@
 /**
  * Guitar Voice-Leading Engine — Choose next voicing by smallest fret displacement.
- * Minimize top-voice movement, prefer common tones, avoid jumps > 4th in upper voice.
+ * Rules: preserve common tones, upper voice movement ≤ third when possible,
+ * avoid register jumps > fifth.
  */
 import type { Chord } from './types';
-import type { FretboardVoicing } from './fretboardMapper';
-import { getVoicingsForChord } from './fretboardMapper';
+import type { FretboardVoicingResult } from './guitarFretboardEngine';
+import { getVoicingsForChord } from './guitarFretboardEngine';
+import type { VoicingFamilyId } from './guitarVoicingFamilies';
 
 export interface VoiceLeadingContext {
-  lastVoicing: FretboardVoicing | null;
+  lastVoicing: FretboardVoicingResult | null;
   lastTopPitch: number | null;
 }
+
+const MAX_UPPER_VOICE_MOVEMENT = 4; // major third in semitones
+const MAX_REGISTER_JUMP = 7; // fifth in semitones
 
 function commonToneCount(a: number[], b: number[]): number {
   const setB = new Set(b.map(p => p % 12));
@@ -17,33 +22,45 @@ function commonToneCount(a: number[], b: number[]): number {
 }
 
 function topVoiceDistance(a: number[], b: number[]): number {
-  const topA = Math.max(...a);
-  const topB = Math.max(...b);
-  return Math.abs(topB - topA);
+  return Math.abs(Math.max(...b) - Math.max(...a));
 }
 
-function fretDisplacement(prev: FretboardVoicing | null, next: FretboardVoicing): number {
+function fretDisplacement(prev: FretboardVoicingResult | null, next: FretboardVoicingResult): number {
   if (!prev) return 0;
   const avgPrev = prev.pitches.reduce((s, p) => s + p, 0) / prev.pitches.length;
   const avgNext = next.pitches.reduce((s, p) => s + p, 0) / next.pitches.length;
   return Math.abs(avgNext - avgPrev);
 }
 
-/** Choose best next voicing: smallest displacement, most common tones, minimal top-voice jump */
+/** Choose best next voicing: smallest displacement, most common tones,
+ * minimal top-voice jump (≤ third preferred), register jump ≤ fifth */
 export function chooseNextVoicing(
   chord: Chord,
   context: VoiceLeadingContext,
-  families: ('shell' | 'guideTone' | 'triad')[] = ['shell', 'guideTone', 'triad']
-): FretboardVoicing | null {
-  const candidates = getVoicingsForChord(chord, families);
+  families: VoicingFamilyId[] = ['shell', 'guideTone', 'triad']
+): FretboardVoicingResult | null {
+  const candidates = getVoicingsForChord(
+    chord,
+    families,
+    3,
+    12,
+    context.lastTopPitch ?? null
+  );
   if (candidates.length === 0) return null;
 
   const scored = candidates.map(v => {
-    const common = context.lastVoicing ? commonToneCount(context.lastVoicing.pitches, v.pitches) : 0;
-    const topJump = context.lastTopPitch != null ? Math.abs(Math.max(...v.pitches) - context.lastTopPitch) : 0;
+    const common = context.lastVoicing
+      ? commonToneCount(context.lastVoicing.pitches, v.pitches)
+      : 0;
+    const topJump = context.lastTopPitch != null
+      ? Math.abs(Math.max(...v.pitches) - context.lastTopPitch)
+      : 0;
     const displacement = fretDisplacement(context.lastVoicing, v);
-    const topPenalty = topJump > 5 ? topJump * 2 : 0;
-    const score = common * 10 - displacement - topPenalty - topJump * 0.5;
+
+    let score = common * 10 - displacement * 0.5;
+    if (topJump <= MAX_UPPER_VOICE_MOVEMENT) score += 5;
+    else if (topJump > MAX_REGISTER_JUMP) score -= topJump * 3;
+    else score -= topJump;
     return { v, score };
   });
 

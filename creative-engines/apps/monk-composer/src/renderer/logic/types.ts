@@ -75,6 +75,12 @@ export interface Phrase {
   bars: number;
 }
 
+export interface GuitarDiagnostics {
+  compPattern: string;
+  usedFamilyIds: string[];
+  voiceLeadingDistance?: number;
+}
+
 export interface Composition {
   phrases: Phrase[];
   harmony: Chord[];
@@ -82,6 +88,7 @@ export interface Composition {
   texture: { voice: number; notes: Note[] }[];
   metadata: Record<string, unknown>;
   quartetDiagnostics?: QuartetDiagnostics;
+  guitarDiagnostics?: GuitarDiagnostics;
 }
 
 export interface GCEScores {
