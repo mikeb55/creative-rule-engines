@@ -99,6 +99,22 @@ creative-rule-engines/
 
 ---
 
+## 🎹 Monk Barry Composer (Desktop App)
+
+A Windows desktop application for the Monk / Barry Harris engine.
+
+- **Location:** `apps/monk-barry-desktop/`
+- **Export folder:** `%USERPROFILE%\Documents\Monk Barry Exports\`
+- **Desktop shortcut:** Monk Barry Composer
+- **Version:** v1.0 Clean Rebuild
+- **Engines:** Barry Harris, Monk
+- **Instruments:** Guitar, Piano
+
+**Build:** `npm run build` (from repo root)  
+**Run:** Double-click the desktop shortcut or `Monk Barry Composer 1.0.0.exe` in `apps/monk-barry-desktop/release/`
+
+---
+
 ## 🚀 Quick Start
 
 ### Option 1: Import the Master File (Recommended)

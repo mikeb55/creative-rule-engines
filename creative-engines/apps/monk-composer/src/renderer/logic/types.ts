@@ -141,6 +141,33 @@ export interface Warnings {
   highSustainedFiller?: boolean;
   violaZeroRest?: boolean;
   continuous4VoiceMotion?: boolean;
+  phraseArchitectureMissing?: boolean;
+  harmonicDirectionAbsent?: boolean;
+  motionGrammarUnused?: boolean;
+  rhythmicDensityUniform?: boolean;
+  melodyIgnoresHarmony?: boolean;
+  barryLacksGuideToneTargeting?: boolean;
+  monkLacksRhythmicInterruption?: boolean;
+  rhythmGrammarMissing?: boolean;
+  guideToneContinuityBroken?: boolean;
+  dominantResolutionMissing?: boolean;
+  excessiveVoiceLeadingLeap?: boolean;
+  counterlineMissing?: boolean;
+  counterlineDuplicatesMainLine?: boolean;
+  counterlineTooDense?: boolean;
+  counterlineIgnoresHarmony?: boolean;
+  textureUniform?: boolean;
+  textureOvercrowded?: boolean;
+  textureMissingContrast?: boolean;
+  voicingGuideToneMissing?: boolean;
+  voicingRegisterJump?: boolean;
+  voicingTextureConflict?: boolean;
+  voicingInstrumentViolation?: boolean;
+  quartetLeadStatic?: boolean;
+  violaUnderused?: boolean;
+  celloOnlyBass?: boolean;
+  quartetTextureFlat?: boolean;
+  quartetBlockWriting?: boolean;
 }
 
 export interface QuartetDiagnostics {

@@ -79,6 +79,17 @@ export function evaluateGCE(comp: Composition, target: string): { scores: GCESco
 
   const engine = comp.metadata?.engine as string | undefined;
   const isBarryChordal = engine === 'barry' && ['guitar', 'piano', 'big_band'].includes(target);
+  const phraseArchApplied = comp.metadata?.phraseArchitectureApplied as boolean | undefined;
+  const harmonicDirection = comp.metadata?.harmonicDirectionPresent as boolean | undefined;
+  const motionGrammarUsed = comp.metadata?.motionGrammarUsed as boolean | undefined;
+  const rhythmGrammarApplied = comp.metadata?.rhythmGrammarApplied as boolean | undefined;
+  const melodicRealizationApplied = comp.metadata?.melodicRealizationApplied as boolean | undefined;
+  const rhythmicDensityUniform = comp.metadata?.rhythmicDensityUniform as boolean | undefined;
+  const melodyIgnoresHarmony = comp.metadata?.melodyIgnoresHarmony as boolean | undefined;
+  const guideToneSkeletonValid = comp.metadata?.guideToneSkeletonValid as boolean | undefined;
+  const guideToneContinuityBroken = comp.metadata?.guideToneContinuityBroken as boolean | undefined;
+  const dominantResolutionMissing = comp.metadata?.dominantResolutionMissing as boolean | undefined;
+  const excessiveVoiceLeadingLeap = comp.metadata?.excessiveVoiceLeadingLeap as boolean | undefined;
   if (target === 'guitar') {
     const g = validateGuitarIdiom(notes);
     if (!g.pass) targetIdiom = Math.max(0.3, targetIdiom - 0.4);
@@ -131,6 +142,9 @@ export function evaluateGCE(comp: Composition, target: string): { scores: GCESco
     violaZeroRest: false,
     continuous4VoiceMotion: false,
     lowViolaAttackDensity: false,
+    phraseArchitectureMissing: false,
+    harmonicDirectionAbsent: false,
+    motionGrammarUnused: false,
     lowViolaMotifParticipation: false,
     lowViolaRoleEntropy: false,
     celloAlwaysOn: false,
@@ -139,12 +153,122 @@ export function evaluateGCE(comp: Composition, target: string): { scores: GCESco
     insufficientTexturalReduction: false,
     fewExposedDuoTrio: false,
     highSustainedFiller: false,
+    rhythmicDensityUniform: false,
+    melodyIgnoresHarmony: false,
+    barryLacksGuideToneTargeting: false,
+    monkLacksRhythmicInterruption: false,
+    rhythmGrammarMissing: false,
+    guideToneContinuityBroken: false,
+    dominantResolutionMissing: false,
+    excessiveVoiceLeadingLeap: false,
+    counterlineMissing: false,
+    counterlineDuplicatesMainLine: false,
+    counterlineTooDense: false,
+    counterlineIgnoresHarmony: false,
+    textureUniform: false,
+    textureOvercrowded: false,
+    textureMissingContrast: false,
+    voicingGuideToneMissing: false,
+    voicingRegisterJump: false,
+    voicingTextureConflict: false,
+    voicingInstrumentViolation: false,
+    quartetLeadStatic: false,
+    violaUnderused: false,
+    celloOnlyBass: false,
+    quartetTextureFlat: false,
+    quartetBlockWriting: false,
   };
 
   const cadenceStrength = comp.harmony?.length
     ? (comp.harmony.some((c, i) => i > 0 && c.symbol.includes('C') && comp.harmony[i - 1]?.symbol.includes('G')) ? 0.9 : 0.5)
     : 0.5;
   warnings.weakCadence = cadenceStrength < 0.6;
+
+  if ((engine === 'barry' || engine === 'monk') && phraseArchApplied === false) {
+    warnings.phraseArchitectureMissing = true;
+  }
+  if ((engine === 'barry' || engine === 'monk') && harmonicDirection === false) {
+    warnings.harmonicDirectionAbsent = true;
+  }
+  if (engine === 'barry' && motionGrammarUsed === false) {
+    warnings.motionGrammarUnused = true;
+  }
+  if ((engine === 'barry' || engine === 'monk') && rhythmGrammarApplied === false) {
+    warnings.rhythmGrammarMissing = true;
+  }
+  if ((engine === 'barry' || engine === 'monk') && rhythmicDensityUniform === true) {
+    warnings.rhythmicDensityUniform = true;
+  }
+  if ((engine === 'barry' || engine === 'monk') && melodyIgnoresHarmony === true) {
+    warnings.melodyIgnoresHarmony = true;
+  }
+  if (engine === 'barry' && melodicRealizationApplied === false) {
+    warnings.barryLacksGuideToneTargeting = true;
+  }
+  if (engine === 'monk' && melodicRealizationApplied === false) {
+    warnings.monkLacksRhythmicInterruption = true;
+  }
+  if ((engine === 'barry' || engine === 'monk') && guideToneContinuityBroken === true) {
+    warnings.guideToneContinuityBroken = true;
+  }
+  if ((engine === 'barry' || engine === 'monk') && dominantResolutionMissing === true) {
+    warnings.dominantResolutionMissing = true;
+  }
+  if ((engine === 'barry' || engine === 'monk') && excessiveVoiceLeadingLeap === true) {
+    warnings.excessiveVoiceLeadingLeap = true;
+  }
+
+  const counterlineApplied = comp.metadata?.counterlineApplied as boolean | undefined;
+  const textureRequiresCounterline = (engine === 'barry' || engine === 'monk') && ['guitar', 'piano'].includes(target);
+  if (textureRequiresCounterline && counterlineApplied === false) {
+    warnings.counterlineMissing = true;
+  }
+  if (textureRequiresCounterline && comp.metadata?.counterlineDuplicatesMainLine === true) {
+    warnings.counterlineDuplicatesMainLine = true;
+  }
+  if (textureRequiresCounterline && comp.metadata?.counterlineTooDense === true) {
+    warnings.counterlineTooDense = true;
+  }
+  if (textureRequiresCounterline && comp.metadata?.counterlineIgnoresHarmony === true) {
+    warnings.counterlineIgnoresHarmony = true;
+  }
+
+  if ((engine === 'barry' || engine === 'monk') && comp.metadata?.textureUniform === true) {
+    warnings.textureUniform = true;
+  }
+  if ((engine === 'barry' || engine === 'monk') && comp.metadata?.textureOvercrowded === true) {
+    warnings.textureOvercrowded = true;
+  }
+  if ((engine === 'barry' || engine === 'monk') && comp.metadata?.textureMissingContrast === true) {
+    warnings.textureMissingContrast = true;
+  }
+  if ((engine === 'barry' || engine === 'monk') && comp.metadata?.voicingGuideToneMissing === true) {
+    warnings.voicingGuideToneMissing = true;
+  }
+  if ((engine === 'barry' || engine === 'monk') && comp.metadata?.voicingRegisterJump === true) {
+    warnings.voicingRegisterJump = true;
+  }
+  if ((engine === 'barry' || engine === 'monk') && comp.metadata?.voicingTextureConflict === true) {
+    warnings.voicingTextureConflict = true;
+  }
+  if ((engine === 'barry' || engine === 'monk') && comp.metadata?.voicingInstrumentViolation === true) {
+    warnings.voicingInstrumentViolation = true;
+  }
+  if (target === 'string_quartet' && comp.metadata?.quartetLeadStatic === true) {
+    warnings.quartetLeadStatic = true;
+  }
+  if (target === 'string_quartet' && comp.metadata?.violaUnderused === true) {
+    warnings.violaUnderused = true;
+  }
+  if (target === 'string_quartet' && comp.metadata?.celloOnlyBass === true) {
+    warnings.celloOnlyBass = true;
+  }
+  if (target === 'string_quartet' && comp.metadata?.quartetTextureFlat === true) {
+    warnings.quartetTextureFlat = true;
+  }
+  if (target === 'string_quartet' && comp.metadata?.quartetBlockWriting === true) {
+    warnings.quartetBlockWriting = true;
+  }
 
   if (target === 'string_quartet' && comp.texture?.length === 4) {
     const vn1Notes = comp.texture[0]?.notes ?? [];
@@ -268,6 +392,19 @@ export function evaluateGCE(comp: Composition, target: string): { scores: GCESco
     afterglow = (motivicIntegrity + rhythmicPersonality) / 2;
   }
 
+  const phraseLayerPenalty =
+    (warnings.phraseArchitectureMissing ? 1.5 : 0) +
+    (warnings.harmonicDirectionAbsent ? 1.2 : 0) +
+    (warnings.motionGrammarUnused ? 1.0 : 0) +
+    (warnings.rhythmicDensityUniform ? 1.0 : 0) +
+    (warnings.melodyIgnoresHarmony ? 1.2 : 0) +
+    (warnings.barryLacksGuideToneTargeting ? 1.0 : 0) +
+    (warnings.monkLacksRhythmicInterruption ? 1.0 : 0) +
+    (warnings.guideToneContinuityBroken ? 1.0 : 0) +
+    (warnings.dominantResolutionMissing ? 1.0 : 0) +
+    (warnings.excessiveVoiceLeadingLeap ? 1.0 : 0);
+  harmonicCoherence = Math.max(0.2, harmonicCoherence - phraseLayerPenalty * 0.15);
+
   let overall =
     (motivicIntegrity + rhythmicPersonality + harmonicCoherence + asymmetryScore + targetIdiom + originality + afterglow) / 7 * 10;
 
@@ -304,6 +441,42 @@ export function evaluateGCE(comp: Composition, target: string): { scores: GCESco
 
   if (isBarryChordal && targetIdiom >= 0.8 && !capped) {
     overall = Math.min(10, overall + 0.7);
+  }
+
+  if ((engine === 'barry' || engine === 'monk') && (warnings.phraseArchitectureMissing || warnings.harmonicDirectionAbsent || warnings.motionGrammarUnused)) {
+    overall = Math.min(overall, 4.5);
+    capped = true;
+  }
+  if ((engine === 'barry' || engine === 'monk') && warnings.rhythmGrammarMissing) {
+    overall = Math.min(overall, 5.0);
+    capped = true;
+  }
+  if ((engine === 'barry' || engine === 'monk') && guideToneSkeletonValid === false) {
+    overall = Math.min(overall, 6.0);
+    capped = true;
+  }
+  if (
+    textureRequiresCounterline &&
+    (warnings.counterlineMissing || warnings.counterlineDuplicatesMainLine || warnings.counterlineTooDense || warnings.counterlineIgnoresHarmony)
+  ) {
+    overall = Math.min(overall, 6.0);
+    capped = true;
+  }
+  if ((engine === 'barry' || engine === 'monk') && (warnings.textureUniform || warnings.textureOvercrowded || warnings.textureMissingContrast)) {
+    overall = Math.min(overall, 6.5);
+    capped = true;
+  }
+  const quartetRoleLogicFailed =
+    target === 'string_quartet' &&
+    (warnings.quartetLeadStatic || warnings.violaUnderused || warnings.celloOnlyBass || warnings.quartetTextureFlat || warnings.quartetBlockWriting);
+  if (quartetRoleLogicFailed) {
+    overall = Math.min(overall, 7.0);
+    capped = true;
+  }
+  const voicingOptimizationFailed = comp.metadata?.voicingOptimizationValid === false;
+  if ((engine === 'barry' || engine === 'monk') && voicingOptimizationFailed) {
+    overall = Math.min(overall, 7.5);
+    capped = true;
   }
 
   return {
