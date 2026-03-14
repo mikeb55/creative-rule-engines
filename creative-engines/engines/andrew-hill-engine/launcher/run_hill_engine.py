@@ -5,6 +5,7 @@ V4.2 — Uses phrase generator for true generative output.
 """
 import os
 import sys
+import subprocess
 from datetime import datetime
 
 # Add runtime to path
@@ -33,6 +34,19 @@ def main():
         f.write(xml_content)
 
     print("Andrew Hill phrase generated successfully.")
+    print(f"Output: {out_path}")
+
+    # Open file with default application (Windows)
+    try:
+        if sys.platform == "win32":
+            os.startfile(os.path.normpath(out_path))
+        elif sys.platform == "darwin":
+            subprocess.run(["open", out_path], check=False)
+        else:
+            subprocess.run(["xdg-open", out_path], check=False)
+    except Exception as e:
+        print(f"Note: Could not open file automatically: {e}")
+
     return 0
 
 
