@@ -10,7 +10,8 @@
     "package-desktop": "cd apps/monk-barry-desktop && npm run build",
     "generate-tests": "npx tsx engines/monk-barry-engine/tests/generateStudies.ts",
     "generate-optimized": "npx tsx engines/monk-barry-engine/tests/generateOptimizedStudies.ts",
-    "generate-quartet": "npx tsx engines/monk-barry-engine/tests/generateQuartetStudies.ts"
+    "generate-quartet": "npx tsx engines/monk-barry-engine/tests/generateQuartetStudies.ts",
+    "generate-hill": "npx tsx engines/monk-barry-engine/tests/generateHillStudies.ts"
   },
   "devDependencies": {
     "esbuild": "^0.24.2"
