@@ -16,3 +16,13 @@ dist-electron/
 release/
 *.log
 
+# Python
+__pycache__/
+*.pyc
+
+# Generated outputs
+outputs/
+
+# Separate design repo (do not stage in parent)
+gml-composer-engines/
+

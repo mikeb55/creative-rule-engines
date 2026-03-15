@@ -57,7 +57,7 @@ export interface VoicingOptimizationInput {
   instrument: InstrumentType;
   chordEvents: ChordEventInput[];
   cadencePoints?: number[];
-  engine?: 'barry' | 'monk';
+  engine?: 'barry' | 'monk' | 'hill';
 }
 
 export interface VoicingOptimizationResult {
@@ -242,7 +242,7 @@ export function optimizeVoicings(input: VoicingOptimizationInput): VoicingOptimi
       violations.push('chord density exceeds texture state');
     }
 
-    if (!hasGuideTones(optimizedPitches, guideTonePair)) {
+    if (engine !== 'hill' && !hasGuideTones(optimizedPitches, guideTonePair)) {
       violations.push('guide tones disappear');
     }
 
@@ -250,7 +250,7 @@ export function optimizeVoicings(input: VoicingOptimizationInput): VoicingOptimi
       violations.push('register instability');
     }
 
-    if (hasParallelFifthOctave(prevPitches, optimizedPitches) && engine === 'barry') {
+    if (hasParallelFifthOctave(prevPitches, optimizedPitches) && (engine === 'barry' || engine === 'monk')) {
       violations.push('parallel fifth/octave');
     }
 

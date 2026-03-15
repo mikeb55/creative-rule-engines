@@ -63,7 +63,7 @@ export interface RevisionEvaluationInput {
   melodicEventsCount: number;
   counterlineEventsCount: number;
   instrument: 'guitar' | 'piano';
-  engine: 'barry' | 'monk';
+  engine: 'barry' | 'monk' | 'hill';
 }
 
 export interface RevisionEvaluationResult {

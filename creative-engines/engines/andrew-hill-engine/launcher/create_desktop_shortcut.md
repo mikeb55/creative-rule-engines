@@ -1,5 +1,13 @@
 # Create Desktop Shortcut — Andrew Hill Engine
 
+## Automatic Setup
+
+1. **Double-click** `create_hill_desktop_icon.bat`
+2. The script will place **"Andrew Hill Engine"** on your desktop automatically
+3. After that, **double-click the desktop icon** to generate a new Hill phrase
+
+---
+
 ## Shortcut Name
 
 **Andrew Hill Engine**

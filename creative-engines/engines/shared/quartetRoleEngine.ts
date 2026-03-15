@@ -35,7 +35,7 @@ export type QuartetRoleAssignment = {
 
 export type QuartetRoleMap = Map<string, QuartetRoleAssignment>;
 
-export type EngineQuartetStyle = 'barry' | 'monk';
+export type EngineQuartetStyle = 'barry' | 'monk' | 'hill';
 
 export interface QuartetRoleEngineOptions {
   phraseStructure: PhraseStructure;
