@@ -16,7 +16,7 @@ declare global {
 
 export default function App() {
   const [engine, setEngine] = useState<'barry' | 'monk'>('barry');
-  const [instrument, setInstrument] = useState<'guitar' | 'piano'>('guitar');
+  const [instrument, setInstrument] = useState<'guitar' | 'piano' | 'string_quartet' | 'big_band'>('guitar');
   const [bars, setBars] = useState(8);
   const [status, setStatus] = useState<'idle' | 'generating' | 'ready' | 'error'>('idle');
   const [lastResult, setLastResult] = useState<{
@@ -78,11 +78,12 @@ export default function App() {
           <label style={{ display: 'block', marginBottom: 4 }}>Instrument</label>
           <select
             value={instrument}
-            onChange={e => setInstrument(e.target.value as 'guitar' | 'piano')}
+            onChange={e => setInstrument(e.target.value as 'guitar' | 'piano' | 'string_quartet')}
             style={{ padding: 6, minWidth: 160 }}
           >
             <option value="guitar">Guitar</option>
             <option value="piano">Piano</option>
+            <option value="string_quartet">String Quartet</option>
           </select>
         </div>
         <div>
@@ -128,7 +129,7 @@ export default function App() {
         }}
       >
         <div><strong>Engine:</strong> {engine === 'barry' ? 'Barry Harris' : 'Monk'}</div>
-        <div><strong>Instrument:</strong> {instrument}</div>
+        <div><strong>Ensemble:</strong> {instrument}</div>
         <div><strong>Generation:</strong> {status === 'generating' ? '…' : status === 'ready' ? 'OK' : status === 'error' ? 'FAILED' : '—'}</div>
         <div><strong>Validation:</strong> {lastResult?.valid ? 'PASS' : lastResult ? 'FAIL' : '—'}</div>
         <div><strong>Output:</strong> {lastResult?.filename ?? '—'}</div>
