@@ -15,7 +15,7 @@ function main() {
 
   const bars = 6;
 
-  for (const engine of ['barry', 'monk'] as const) {
+  for (const engine of ['barry', 'monk', 'hill'] as const) {
     const result = runPipeline({
       engine,
       instrument: 'string_quartet',

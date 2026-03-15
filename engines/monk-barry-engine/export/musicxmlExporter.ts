@@ -1,8 +1,9 @@
 /**
  * MusicXML Exporter — MusicXML 3.0 compatibility.
- * Correct staves for piano, chord simultaneity, instrument names preserved.
+ * Supports guitar, piano, string_quartet, big_band.
  */
 import type { MusicEvent } from '../../shared/MusicEvent';
+import type { BigBandPartEvent } from '../orchestration/bigBandSectionEngine';
 
 const PITCH_STEPS = ['C', 'D', 'E', 'F', 'G', 'A', 'B'];
 const KEY_FIFTHS: Record<string, number> = {
@@ -31,8 +32,24 @@ export interface ExportOptions {
   title: string;
   keyCenter?: string;
   meter?: string;
-  target?: 'guitar' | 'piano';
+  target?: 'guitar' | 'piano' | 'string_quartet' | 'big_band';
 }
+
+/** String quartet staff order */
+const QUARTET_PARTS = ['Violin I', 'Violin II', 'Viola', 'Cello'] as const;
+
+/** Big band staff groups: SAXES, TRUMPETS, TROMBONES */
+const BIG_BAND_PARTS = [
+  'Alto 1', 'Alto 2', 'Tenor 1', 'Tenor 2', 'Baritone',
+  'Trumpet 1', 'Trumpet 2', 'Trumpet 3', 'Trumpet 4',
+  'Trombone 1', 'Trombone 2', 'Trombone 3', 'Bass Trom',
+] as const;
+
+const BIG_BAND_PART_IDS = [
+  'alto1', 'alto2', 'tenor1', 'tenor2', 'baritone',
+  'trumpet1', 'trumpet2', 'trumpet3', 'trumpet4',
+  'trombone1', 'trombone2', 'trombone3', 'bassTrombone',
+] as const;
 
 export function eventsToMusicXML(
   events: MusicEvent[],
@@ -121,4 +138,73 @@ export function eventsToMusicXML(
 
 function escapeXml(s: string): string {
   return s.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;').replace(/'/g, '&apos;');
+}
+
+/** Export big band part events to MusicXML with full section layout. */
+export function bigBandEventsToMusicXML(
+  events: BigBandPartEvent[],
+  options: { title: string; keyCenter?: string; meter?: string }
+): string {
+  const { title, keyCenter = 'C', meter = '4/4' } = options;
+  const divs = 4;
+  const fifths = KEY_FIFTHS[keyCenter] ?? 0;
+  const [beats, beatType] = meter.split('/').map(Number);
+  const maxMeasure = events.length > 0 ? Math.max(...events.map(e => e.measure)) : 0;
+
+  let xml = `<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE score-partwise PUBLIC "-//Recordare//DTD MusicXML 3.0 Partwise//EN" "http://www.musicxml.org/dtds/partwise.dtd">
+<score-partwise version="3.0">
+  <work><work-title>${escapeXml(title)}</work-title></work>
+  <part-list>
+`;
+  for (let i = 0; i < BIG_BAND_PARTS.length; i++) {
+    xml += `    <score-part id="P${i + 1}">
+      <part-name>${escapeXml(BIG_BAND_PARTS[i])}</part-name>
+    </score-part>
+`;
+  }
+  xml += `  </part-list>
+`;
+
+  for (let pIdx = 0; pIdx < BIG_BAND_PART_IDS.length; pIdx++) {
+    const partId = BIG_BAND_PART_IDS[pIdx];
+    const partEvents = events.filter(e => e.part === partId);
+    xml += `  <part id="P${pIdx + 1}">
+`;
+
+    for (let m = 0; m <= maxMeasure; m++) {
+      xml += `    <measure number="${m + 1}">`;
+      if (m === 0) {
+        xml += `
+      <attributes>
+        <divisions>${divs}</divisions>
+        <key><fifths>${fifths}</fifths></key>
+        <time><beats>${beats}</beats><beat-type>${beatType}</beat-type></time>
+      </attributes>`;
+      }
+
+      const evts = partEvents
+        .filter(e => e.measure === m)
+        .sort((a, b) => a.beatPosition - b.beatPosition);
+
+      if (evts.length === 0) {
+        const dur = divs * 4;
+        xml += `\n      <note><rest/><duration>${dur}</duration><type>whole</type></note>`;
+      } else {
+        for (const e of evts) {
+          const { step, octave, alter } = midiToStepOctave(e.pitch);
+          const alterXml = alter ? `<alter>${alter}</alter>` : '';
+          const dur = Math.max(1, Math.round(e.duration * divs));
+          xml += `\n      <note><pitch><step>${step}</step>${alterXml}<octave>${octave}</octave></pitch><duration>${dur}</duration><type>${durationToType(e.duration)}</type></note>`;
+        }
+      }
+
+      xml += `\n    </measure>`;
+    }
+    xml += `\n  </part>
+`;
+  }
+
+  xml += `</score-partwise>`;
+  return xml;
 }

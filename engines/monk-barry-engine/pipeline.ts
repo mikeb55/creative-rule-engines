@@ -36,11 +36,15 @@ import { applyBarryQuartetRules } from '../../creative-engines/engines/barry-har
 import { mapEventsToQuartet } from '../../creative-engines/engines/shared/quartetEventMapper';
 import { quartetEventsToMusicXML } from '../../creative-engines/engines/shared/quartetMusicXMLExporter';
 import { validateQuartetOutput } from '../../creative-engines/engines/shared/quartetValidation';
+import { mapEventsToBigBand } from './orchestration/bigBandSectionEngine';
+import { applyBigBandVoicing } from './orchestration/bigBandVoicingEngine';
+import { bigBandEventsToMusicXML } from './export/musicxmlExporter';
+import { runHillPipeline, runHillPipelineWithRevision } from '../andrew-hill-engine/hillPipeline';
 import * as fs from 'fs';
 import * as path from 'path';
 
-export type EngineChoice = 'barry' | 'monk';
-export type InstrumentTarget = 'guitar' | 'piano' | 'string_quartet';
+export type EngineChoice = 'barry' | 'monk' | 'hill';
+export type InstrumentTarget = 'guitar' | 'piano' | 'string_quartet' | 'big_band';
 
 export interface PipelineOptions {
   engine: EngineChoice;
@@ -144,7 +148,7 @@ export function runPipeline(options: PipelineOptions): { events: import('../shar
   const chordEventsFromRhythm = rhythmicGrid.events.filter(re => re.eventType !== 'rest');
   const rhythmHasChords = chordEventsFromRhythm.length > 0;
 
-  const effectiveInstrument = instrument === 'string_quartet' ? 'piano' : instrument;
+  const effectiveInstrument = instrument === 'string_quartet' || instrument === 'big_band' ? 'piano' : instrument;
 
   for (const re of (rhythmHasChords ? rhythmicGrid.events : refinedHarmony.map((h, i) => ({
     measure: h.measure,
@@ -250,6 +254,7 @@ export function runPipeline(options: PipelineOptions): { events: import('../shar
       valid: phraseValid && barryMotionValid,
       filename: quartetFilename,
       metadata: {
+        ensembleType: 'string_quartet' as const,
         phraseArchitectureApplied: phraseValid,
         harmonicDirectionPresent: barryMotionValid,
         quartetRoleEngineApplied: true,
@@ -258,6 +263,35 @@ export function runPipeline(options: PipelineOptions): { events: import('../shar
         celloOnlyBass: quartetValidation.celloOnlyBass,
         quartetTextureFlat: quartetValidation.textureFlat,
         quartetBlockWriting: quartetValidation.blockWriting,
+      },
+    };
+  }
+
+  if (instrument === 'big_band') {
+    const bigBandEvents = mapEventsToBigBand(events, bars);
+    const voicedEvents = applyBigBandVoicing(bigBandEvents);
+    const bigBandXml = bigBandEventsToMusicXML(voicedEvents, {
+      title: `${engine === 'barry' ? 'Barry' : 'Monk'} Big Band Sketch`,
+      keyCenter,
+    });
+    const bigBandFilename = `${engine}-big-band-sketch.musicxml`;
+    if (!options.skipWrite) {
+      try {
+        fs.mkdirSync(outputDir, { recursive: true });
+        fs.writeFileSync(path.join(outputDir, bigBandFilename), bigBandXml, 'utf-8');
+      } catch (_) {}
+    }
+    const phraseValid = phraseStruct !== null && validatePhraseStructure(phraseStruct);
+    const barryMotionValid = engine !== 'barry' || hasDirectionalMotion(harmony);
+    return {
+      events,
+      xml: bigBandXml,
+      valid: phraseValid && barryMotionValid,
+      filename: bigBandFilename,
+      metadata: {
+        phraseArchitectureApplied: phraseValid,
+        harmonicDirectionPresent: barryMotionValid,
+        ensembleType: 'big_band' as const,
       },
     };
   }
@@ -318,6 +352,7 @@ export function runPipeline(options: PipelineOptions): { events: import('../shar
     valid: validation.valid && layerValid,
     filename,
     metadata: {
+      ensembleType: instrument as 'guitar' | 'piano',
       phraseArchitectureApplied: phraseValid,
       harmonicDirectionPresent: barryMotionValid,
       motionGrammarUsed: engine === 'barry' ? barryMotionValid : undefined,
@@ -348,7 +383,17 @@ export function runPipeline(options: PipelineOptions): { events: import('../shar
  * String quartet skips revision loop (no guitar/piano voicing optimization).
  */
 export function runPipelineWithRevision(options: PipelineOptions): ReturnType<typeof runPipeline> {
-  if (options.instrument === 'string_quartet') {
+  if (options.engine === 'hill') {
+    return runHillPipelineWithRevision({
+      instrument: options.instrument,
+      bars: options.bars,
+      keyCenter: options.keyCenter,
+      outputDir: options.outputDir,
+      skipWrite: options.skipWrite,
+      optimized: options.optimized,
+    }) as ReturnType<typeof runPipeline>;
+  }
+  if (options.instrument === 'string_quartet' || options.instrument === 'big_band') {
     return runPipeline(options);
   }
   const MAX_CYCLES = 5;
